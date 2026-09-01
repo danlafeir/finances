@@ -16,18 +16,31 @@ const AccountSchema = z.object({
   type: z.nativeEnum(AccountType),
   broker: z.string().optional(),
   ticker: z.string().optional(),
-  openingBalanceCents: z.number().int(),
+  snapshotBalanceCents: z.number().int(),
+  snapshotDate: z.string().optional().nullable(),
   isLiability: z.boolean().default(false),
   color: z.string().optional(),
   currency: z.string().default("USD"),
   vestingEvents: z.array(VestingEventInput).optional(),
 });
 
+function signedSum(transactions: { type: string; amountCents: number }[]) {
+  return transactions.reduce(
+    (sum, t) => sum + (t.type === "INCOME" ? t.amountCents : -t.amountCents),
+    0
+  );
+}
+
 export async function createAccount(data: z.infer<typeof AccountSchema>) {
-  const { vestingEvents, ...accountData } = AccountSchema.parse(data);
+  const { vestingEvents, snapshotDate, ...accountData } = AccountSchema.parse(data);
 
   const account = await prisma.$transaction(async (tx) => {
-    const created = await tx.account.create({ data: accountData });
+    const created = await tx.account.create({
+      data: {
+        ...accountData,
+        snapshotDate: snapshotDate ? new Date(snapshotDate) : null,
+      },
+    });
     if (vestingEvents?.length) {
       await tx.vestingEvent.createMany({
         data: vestingEvents.map((e) => ({
@@ -46,10 +59,16 @@ export async function createAccount(data: z.infer<typeof AccountSchema>) {
 }
 
 export async function updateAccount(id: string, data: z.infer<typeof AccountSchema>) {
-  const { vestingEvents, ...accountData } = AccountSchema.parse(data);
+  const { vestingEvents, snapshotDate, ...accountData } = AccountSchema.parse(data);
 
   const account = await prisma.$transaction(async (tx) => {
-    const updated = await tx.account.update({ where: { id }, data: accountData });
+    const updated = await tx.account.update({
+      where: { id },
+      data: {
+        ...accountData,
+        snapshotDate: snapshotDate ? new Date(snapshotDate) : null,
+      },
+    });
     await tx.vestingEvent.deleteMany({ where: { accountId: id } });
     if (vestingEvents?.length) {
       await tx.vestingEvent.createMany({
@@ -83,19 +102,18 @@ export async function clearAccountTransactions(id: string) {
 }
 
 export async function getAccounts() {
-  return prisma.account.findMany({
-    orderBy: { createdAt: "asc" },
-  });
+  return prisma.account.findMany({ orderBy: { createdAt: "asc" } });
 }
 
 export async function getAccountWithBalance(id: string) {
   const account = await prisma.account.findUniqueOrThrow({ where: { id } });
-  const transactions = await prisma.transaction.findMany({ where: { accountId: id } });
-  const signedSum = transactions.reduce((sum, t) => {
-    return sum + (t.type === "INCOME" ? t.amountCents : -t.amountCents);
-  }, 0);
-  const balance = account.openingBalanceCents + signedSum;
-  return { ...account, balanceCents: balance };
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      accountId: id,
+      ...(account.snapshotDate ? { date: { gt: account.snapshotDate } } : {}),
+    },
+  });
+  return { ...account, balanceCents: account.snapshotBalanceCents + signedSum(transactions) };
 }
 
 export async function getAllAccountsWithBalances() {
@@ -103,10 +121,12 @@ export async function getAllAccountsWithBalances() {
   const transactions = await prisma.transaction.findMany();
 
   return accounts.map((account) => {
-    const signedSum = transactions
-      .filter((t) => t.accountId === account.id)
-      .reduce((sum, t) => sum + (t.type === "INCOME" ? t.amountCents : -t.amountCents), 0);
-    return { ...account, balanceCents: account.openingBalanceCents + signedSum };
+    const eligible = account.snapshotDate
+      ? transactions.filter(
+          (t) => t.accountId === account.id && t.date > account.snapshotDate!
+        )
+      : transactions.filter((t) => t.accountId === account.id);
+    return { ...account, balanceCents: account.snapshotBalanceCents + signedSum(eligible) };
   });
 }
 

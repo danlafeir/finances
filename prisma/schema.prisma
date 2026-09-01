@@ -34,9 +34,10 @@ model Account {
   type                AccountType
   broker              String?
   ticker              String?
-  isLiability         Boolean     @default(false)
-  openingBalanceCents Int         @default(0)
-  currency            String      @default("USD")
+  isLiability          Boolean     @default(false)
+  snapshotBalanceCents Int         @default(0)
+  snapshotDate         DateTime?
+  currency             String      @default("USD")
   color               String?
   plaidItemId         String?
   plaidAccountId      String?

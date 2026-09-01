@@ -83,6 +83,17 @@ export default async function AccountDetailPage({
             <Badge variant="secondary">{ACCOUNT_TYPE_LABEL[account.type] ?? account.type}</Badge>
           </div>
           <p className="text-3xl font-bold tabular-nums">{formatCents(account.balanceCents)}</p>
+          {account.snapshotDate && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Snapshot {formatCents(account.snapshotBalanceCents)} on{" "}
+              {new Date(account.snapshotDate).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+              {" "}+ transactions after
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <Link

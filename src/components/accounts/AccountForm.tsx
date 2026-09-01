@@ -107,10 +107,11 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
     const fd = new FormData(e.currentTarget);
     const name = fd.get("name") as string;
     const broker = fd.get("broker") as string;
-    const balanceStr = fd.get("openingBalance") as string;
+    const balanceStr = fd.get("snapshotBalance") as string;
+    const snapshotDateStr = fd.get("snapshotDate") as string;
 
     try {
-      const openingBalanceCents = isMortgage
+      const snapshotBalanceCents = isMortgage
         ? (mortgageData?.currentBalanceCents ?? 0)
         : parseDollarsToCents(balanceStr || "0");
 
@@ -125,7 +126,8 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
         type: accountType as Parameters<typeof createAccount>[0]["type"],
         broker: broker || undefined,
         ticker: isStockPlan ? ticker.trim().toUpperCase() || undefined : undefined,
-        openingBalanceCents,
+        snapshotBalanceCents,
+        snapshotDate: snapshotDateStr || null,
         isLiability: LIABILITY_TYPES.has(accountType),
         color: ACCOUNT_TYPE_COLOR[accountType],
         currency: "USD",
@@ -240,18 +242,35 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
           }}
         />
       ) : (
-        <div className="space-y-1.5">
-          <Label htmlFor="openingBalance">
-            {isStockPlan ? "Unvested Amount" : "Current Balance"}
-          </Label>
-          <Input
-            id="openingBalance"
-            name="openingBalance"
-            type="text"
-            inputMode="decimal"
-            defaultValue={account ? centsToDisplay(account.openingBalanceCents) : "0.00"}
-            placeholder="0.00"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="snapshotBalance">
+              {isStockPlan ? "Unvested Amount" : "Balance"}
+            </Label>
+            <Input
+              id="snapshotBalance"
+              name="snapshotBalance"
+              type="text"
+              inputMode="decimal"
+              defaultValue={account ? centsToDisplay(account.snapshotBalanceCents) : "0.00"}
+              placeholder="0.00"
+            />
+          </div>
+          {!isStockPlan && (
+            <div className="space-y-1.5">
+              <Label htmlFor="snapshotDate">As of Date <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input
+                id="snapshotDate"
+                name="snapshotDate"
+                type="date"
+                defaultValue={
+                  account?.snapshotDate
+                    ? new Date(account.snapshotDate).toISOString().slice(0, 10)
+                    : ""
+                }
+              />
+            </div>
+          )}
         </div>
       )}
 
