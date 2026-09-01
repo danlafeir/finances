@@ -137,13 +137,6 @@ export function MortgageFields({ initial, onChange }: Props) {
       });
 
     if (schedule.length > 0 && principalCents > 0) {
-      const termMonthsRounded = Math.round(effectiveTermMonths);
-      if (termMonthsRounded > 0 && Math.abs(schedule.length - termMonthsRounded) > 2)
-        issues.push({
-          type: "warning",
-          message: `Schedule has ${schedule.length} payments but term is ${termMonthsRounded} months.`,
-        });
-
       const lastBalance = schedule[schedule.length - 1].balanceCents;
       if (lastBalance > 50000)
         issues.push({
