@@ -25,7 +25,6 @@ export async function createTransaction(data: CreateTransactionInput) {
           transferPairId,
           notes: notes ?? null,
           accountId: parsed.accountId,
-          categoryId: null,
         },
       }),
       prisma.transaction.create({
@@ -38,7 +37,6 @@ export async function createTransaction(data: CreateTransactionInput) {
           transferPairId,
           notes: notes ?? null,
           accountId: destinationAccountId,
-          categoryId: null,
         },
       }),
     ]);
@@ -52,7 +50,6 @@ export async function createTransaction(data: CreateTransactionInput) {
         source: parsed.source,
         notes: parsed.notes ?? null,
         accountId: parsed.accountId,
-        categoryId: parsed.categoryId ?? null,
       },
     });
   }
@@ -78,7 +75,6 @@ export async function deleteTransaction(id: string) {
 
 export async function getTransactions(filters?: {
   accountId?: string;
-  categoryId?: string;
   type?: TransactionType;
   from?: string;
   to?: string;
@@ -87,7 +83,6 @@ export async function getTransactions(filters?: {
   return prisma.transaction.findMany({
     where: {
       ...(filters?.accountId ? { accountId: filters.accountId } : {}),
-      ...(filters?.categoryId ? { categoryId: filters.categoryId } : {}),
       ...(filters?.type ? { type: filters.type } : {}),
       ...(filters?.from || filters?.to
         ? {
@@ -102,7 +97,6 @@ export async function getTransactions(filters?: {
     take: filters?.limit,
     include: {
       account: { select: { id: true, name: true, color: true } },
-      category: { select: { id: true, name: true, color: true, icon: true } },
     },
   });
 }

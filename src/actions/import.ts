@@ -11,7 +11,6 @@ export interface ImportRow {
   amountCents: number;
   type: "INCOME" | "EXPENSE";
   accountId: string;
-  categoryId?: string | null;
   externalId?: string | null;
 }
 
@@ -42,7 +41,11 @@ export async function commitImport(rows: ImportRow[]): Promise<{ imported: numbe
 
   const existingSet = new Set(existingExtIds.map((t) => t.externalId).filter(Boolean));
 
-  const toInsert = rowsWithIds.filter((r) => !existingSet.has(r.externalId ?? ""));
+  const rawToInsert = rowsWithIds.filter((r) => !existingSet.has(r.externalId ?? ""));
+  // Deduplicate within the batch itself — same hash can appear twice in one CSV
+  const toInsert = Array.from(
+    new Map(rawToInsert.map((r) => [r.externalId, r])).values()
+  );
   const skipped = rowsWithIds.length - toInsert.length;
 
   if (toInsert.length > 0) {
@@ -54,7 +57,6 @@ export async function commitImport(rows: ImportRow[]): Promise<{ imported: numbe
         type: r.type as TransactionType,
         source: TransactionSource.CSV,
         accountId: r.accountId,
-        categoryId: r.categoryId ?? null,
         externalId: r.externalId ?? null,
       })),
     });

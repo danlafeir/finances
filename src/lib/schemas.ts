@@ -6,7 +6,6 @@ const BaseTransactionSchema = z.object({
   description: z.string().min(1),
   amountCents: z.number().int().positive(),
   accountId: z.string(),
-  categoryId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   source: z.nativeEnum(TransactionSource).optional().default(TransactionSource.MANUAL),
 });

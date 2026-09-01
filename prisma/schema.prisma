@@ -90,16 +90,6 @@ model VestingEvent {
   @@index([date])
 }
 
-model Category {
-  id           String        @id @default(cuid())
-  name         String        @unique
-  color        String?
-  icon         String?
-  isSystem     Boolean       @default(false)
-  transactions Transaction[]
-  budgets      Budget[]
-}
-
 model Transaction {
   id             String            @id @default(cuid())
   date           DateTime
@@ -113,26 +103,22 @@ model Transaction {
   isReconciled   Boolean           @default(false)
   accountId      String
   account        Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  categoryId     String?
-  category       Category?         @relation(fields: [categoryId], references: [id])
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   @@unique([accountId, externalId])
   @@index([date])
   @@index([accountId, date])
-  @@index([categoryId, date])
   @@index([transferPairId])
 }
 
 model Budget {
-  id         String   @id @default(cuid())
-  monthKey   String
-  limitCents Int
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id          String @id @default(cuid())
+  monthKey    String
+  limitCents  Int
+  description String
 
-  @@unique([categoryId, monthKey])
+  @@unique([description, monthKey])
   @@index([monthKey])
 }
 

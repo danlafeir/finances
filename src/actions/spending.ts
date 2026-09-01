@@ -79,16 +79,14 @@ export async function getRecurringTransactions(
 }
 
 export interface AnomalyItem {
-  categoryId: string;
-  categoryName: string;
-  categoryIcon: string;
+  description: string;
   currentCents: number;
   avgCents: number;
   deltaCents: number;
   ratio: number;
 }
 
-export async function getAnomalousCategories(
+export async function getAnomalousDescriptions(
   mk: string,
   accountIds: string[]
 ): Promise<AnomalyItem[]> {
@@ -105,17 +103,16 @@ export async function getAnomalousCategories(
     accountId: { in: accountIds },
     type: "EXPENSE" as const,
     transferPairId: null,
-    categoryId: { not: null as string | null },
   };
 
   const [baselineRows, currentRows] = await Promise.all([
     prisma.transaction.groupBy({
-      by: ["categoryId"],
+      by: ["description"],
       where: { ...sharedWhere, date: { gte: baselineStart, lte: baselineEnd } },
       _sum: { amountCents: true },
     }),
     prisma.transaction.groupBy({
-      by: ["categoryId"],
+      by: ["description"],
       where: { ...sharedWhere, date: { gte: currentStart, lte: currentEnd } },
       _sum: { amountCents: true },
     }),
@@ -123,19 +120,18 @@ export async function getAnomalousCategories(
 
   const baselineMap = new Map<string, number>();
   for (const row of baselineRows) {
-    if (row.categoryId) baselineMap.set(row.categoryId, row._sum.amountCents ?? 0);
+    baselineMap.set(row.description, row._sum.amountCents ?? 0);
   }
 
-  const anomalies: Omit<AnomalyItem, "categoryName" | "categoryIcon">[] = [];
+  const anomalies: AnomalyItem[] = [];
   for (const row of currentRows) {
-    if (!row.categoryId) continue;
     const currentCents = row._sum.amountCents ?? 0;
-    const baselineTotal = baselineMap.get(row.categoryId) ?? 0;
-    if (baselineTotal === 0) continue; // skip new categories — no history to compare
+    const baselineTotal = baselineMap.get(row.description) ?? 0;
+    if (baselineTotal === 0) continue; // skip descriptions with no prior history
     const avgCents = Math.round(baselineTotal / 3);
     if (currentCents > avgCents * 1.5) {
       anomalies.push({
-        categoryId: row.categoryId,
+        description: row.description,
         currentCents,
         avgCents,
         deltaCents: currentCents - avgCents,
@@ -144,17 +140,5 @@ export async function getAnomalousCategories(
     }
   }
 
-  anomalies.sort((a, b) => b.ratio - a.ratio);
-
-  const categoryIds = anomalies.map((a) => a.categoryId);
-  const categories = await prisma.category.findMany({
-    where: { id: { in: categoryIds } },
-  });
-  const catMap = new Map(categories.map((c) => [c.id, c]));
-
-  return anomalies.map((a) => ({
-    ...a,
-    categoryName: catMap.get(a.categoryId)?.name ?? "Unknown",
-    categoryIcon: catMap.get(a.categoryId)?.icon ?? "📦",
-  }));
+  return anomalies.sort((a, b) => b.ratio - a.ratio);
 }
