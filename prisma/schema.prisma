@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum AccountType {
+  CHECKING
+  CASH
+  QUALIFIED_BROKERAGE
+  TAXABLE_BROKERAGE
+  STOCK_PLAN
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionSource {
+  MANUAL
+  CSV
+  PLAID
+}
+
+model Account {
+  id                  String      @id @default(cuid())
+  name                String
+  type                AccountType
+  broker              String?
+  isLiability         Boolean     @default(false)
+  openingBalanceCents Int         @default(0)
+  currency            String      @default("USD")
+  color               String?
+  plaidItemId         String?
+  plaidAccountId      String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  transactions        Transaction[]
+  holdings            Holding[]
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  color        String?
+  icon         String?
+  isSystem     Boolean       @default(false)
+  transactions Transaction[]
+  budgets      Budget[]
+}
+
+model Transaction {
+  id             String            @id @default(cuid())
+  date           DateTime
+  description    String
+  amountCents    Int
+  type           TransactionType
+  source         TransactionSource @default(MANUAL)
+  transferPairId String?
+  externalId     String?
+  notes          String?
+  isReconciled   Boolean           @default(false)
+  accountId      String
+  account        Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId     String?
+  category       Category?         @relation(fields: [categoryId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([accountId, externalId])
+  @@index([date])
+  @@index([accountId, date])
+  @@index([categoryId, date])
+  @@index([transferPairId])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  monthKey   String
+  limitCents Int
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, monthKey])
+  @@index([monthKey])
+}
+
+model Holding {
+  id             String   @id @default(cuid())
+  ticker         String
+  name           String?
+  shares         Float
+  costBasisCents Int
+  accountId      String
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([accountId, ticker])
+  @@index([ticker])
+}
+
+model PriceSnapshot {
+  id         String   @id @default(cuid())
+  ticker     String   @unique
+  priceCents Int
+  currency   String   @default("USD")
+  fetchedAt  DateTime @default(now())
+  source     String   @default("yahoo-finance2")
+}
