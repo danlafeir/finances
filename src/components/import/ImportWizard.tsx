@@ -14,6 +14,7 @@ type Step = "upload" | "map" | "preview" | "done";
 interface ImportWizardProps {
   accounts: Account[];
   categories: Category[];
+  redirectTo?: string;
 }
 
 const STEP_LABELS: Record<Step, string> = {
@@ -23,7 +24,7 @@ const STEP_LABELS: Record<Step, string> = {
   done: "Done",
 };
 
-export function ImportWizard({ accounts, categories }: ImportWizardProps) {
+export function ImportWizard({ accounts, categories, redirectTo }: ImportWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("upload");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
@@ -92,7 +93,7 @@ export function ImportWizard({ accounts, categories }: ImportWizardProps) {
         <ImportSuccess
           imported={imported}
           skipped={skipped}
-          onDone={() => router.push("/transactions")}
+          onDone={() => router.push(redirectTo ?? "/transactions")}
         />
       )}
     </div>

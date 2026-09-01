@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getAccountWithBalance } from "@/actions/accounts";
 import { prisma } from "@/lib/prisma";
-import { Pencil } from "lucide-react";
+import { Pencil, Upload } from "lucide-react";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
@@ -242,7 +242,18 @@ export default async function AccountDetailPage({
         </>
       ) : (
         <>
-          <h2 className="text-lg font-medium mb-3">Recent Transactions</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-medium">Recent Transactions</h2>
+            {(account.type === "CHECKING" || account.type === "CREDIT_CARD") && (
+              <Link
+                href={`/accounts/${id}/import`}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                <Upload className="h-3 w-3 mr-1" />
+                Import Transactions
+              </Link>
+            )}
+          </div>
           {transactions.length === 0 ? (
             <p className="text-muted-foreground text-sm">No transactions yet.</p>
           ) : (

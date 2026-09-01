@@ -62,6 +62,8 @@ export async function commitImport(rows: ImportRow[]): Promise<{ imported: numbe
 
   revalidatePath("/transactions");
   revalidatePath("/accounts");
+  revalidatePath(`/accounts/${accountId}`);
+  revalidatePath("/spending");
   revalidatePath("/dashboard");
 
   return { imported: toInsert.length, skipped };
