@@ -137,13 +137,6 @@ export function MortgageFields({ initial, onChange }: Props) {
       });
 
     if (schedule.length > 0 && principalCents > 0) {
-      const schedPayment = schedule[0].paymentCents;
-      if (effectivePaymentCents > 0 && Math.abs(effectivePaymentCents - schedPayment) > 500)
-        issues.push({
-          type: "warning",
-          message: `Schedule payment (${formatCents(schedPayment)}) differs from ${enteredPaymentCents > 0 ? "entered" : "calculated"} payment (${formatCents(effectivePaymentCents)}) by ${formatCents(Math.abs(effectivePaymentCents - schedPayment))}.`,
-        });
-
       const termMonthsRounded = Math.round(effectiveTermMonths);
       if (termMonthsRounded > 0 && Math.abs(schedule.length - termMonthsRounded) > 2)
         issues.push({
@@ -273,7 +266,7 @@ export function MortgageFields({ initial, onChange }: Props) {
     <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
       <p className="text-sm font-medium text-muted-foreground">Mortgage Details</p>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="homeValue">Home Value</Label>
           <Input

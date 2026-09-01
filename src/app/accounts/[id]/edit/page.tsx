@@ -16,7 +16,7 @@ export default async function EditAccountPage({ params }: { params: Promise<{ id
   const { vestingEvents, mortgageDetails, ...accountData } = account;
 
   return (
-    <div className="p-6">
+    <div className="p-6 w-full">
       <h1 className="text-2xl font-semibold mb-6">Edit Account</h1>
       <AccountForm
         account={accountData}

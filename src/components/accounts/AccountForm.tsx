@@ -155,48 +155,53 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-      <div className="space-y-1.5">
-        <Label htmlFor="name">Account Name</Label>
-        <Input
-          id="name"
-          name="name"
-          required
-          defaultValue={account?.name ?? ""}
-          placeholder="e.g. Chase Checking"
-        />
-      </div>
+    <form
+      onSubmit={handleSubmit}
+      className={`space-y-4 ${isMortgage ? "max-w-5xl mx-auto" : "max-w-md"}`}
+    >
+      <div className={isMortgage ? "grid grid-cols-3 gap-4" : "space-y-4"}>
+        <div className="space-y-1.5">
+          <Label htmlFor="name">Account Name</Label>
+          <Input
+            id="name"
+            name="name"
+            required
+            defaultValue={account?.name ?? ""}
+            placeholder="e.g. Chase Checking"
+          />
+        </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="type">Account Type</Label>
-        <Select value={accountType} onValueChange={(v) => v && setAccountType(v as typeof accountType)} required>
-          <SelectTrigger>
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            {ACCOUNT_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="type">Account Type</Label>
+          <Select value={accountType} onValueChange={(v) => v && setAccountType(v as typeof accountType)} required>
+            <SelectTrigger>
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              {ACCOUNT_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="broker">Broker (optional)</Label>
-        <Select name="broker" defaultValue={account?.broker ?? ""}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select broker" />
-          </SelectTrigger>
-          <SelectContent>
-            {BROKERS.map((b) => (
-              <SelectItem key={b} value={b}>
-                {b}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-1.5">
+          <Label htmlFor="broker">Broker (optional)</Label>
+          <Select name="broker" defaultValue={account?.broker ?? ""}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select broker" />
+            </SelectTrigger>
+            <SelectContent>
+              {BROKERS.map((b) => (
+                <SelectItem key={b} value={b}>
+                  {b}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isMortgage ? (
