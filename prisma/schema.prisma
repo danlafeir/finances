@@ -11,6 +11,7 @@ enum AccountType {
   CHECKING
   CASH
   CREDIT_CARD
+  MORTGAGE
   QUALIFIED_BROKERAGE
   TAXABLE_BROKERAGE
   STOCK_PLAN
@@ -44,6 +45,37 @@ model Account {
   transactions        Transaction[]
   holdings            Holding[]
   vestingEvents       VestingEvent[]
+  mortgageDetails     MortgageDetails?
+}
+
+model MortgageDetails {
+  id                  String            @id @default(cuid())
+  accountId           String            @unique
+  account             Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  homeValueCents      Int
+  principalCents      Int
+  annualRateBps       Int
+  termMonths          Int
+  originationDate     DateTime
+  monthlyPaymentCents Int
+  payments            MortgagePayment[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+model MortgagePayment {
+  id             String          @id @default(cuid())
+  paymentNumber  Int
+  paymentDate    DateTime
+  paymentCents   Int
+  principalCents Int
+  interestCents  Int
+  balanceCents   Int
+  mortgageId     String
+  mortgage       MortgageDetails @relation(fields: [mortgageId], references: [id], onDelete: Cascade)
+
+  @@unique([mortgageId, paymentNumber])
+  @@index([mortgageId, paymentDate])
 }
 
 model VestingEvent {

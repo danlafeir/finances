@@ -14,21 +14,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createAccount, updateAccount, lookupTickerPrice } from "@/actions/accounts";
+import { saveMortgageDetails } from "@/actions/mortgage";
 import { parseDollarsToCents, centsToDisplay, formatCents } from "@/lib/money";
-import { ACCOUNT_TYPES, BROKERS, ACCOUNT_TYPE_COLOR } from "@/lib/accounts";
-import type { Account, VestingEvent } from "@/generated/prisma/client";
+import { ACCOUNT_TYPES, BROKERS, ACCOUNT_TYPE_COLOR, LIABILITY_TYPES } from "@/lib/accounts";
+import { MortgageFields } from "@/components/accounts/MortgageFields";
+import type { Account, VestingEvent, MortgageDetails, MortgagePayment } from "@/generated/prisma/client";
+import type { MortgageData } from "@/lib/mortgage";
 
 interface EventRow {
   date: string;
   shares: string;
 }
 
+type MortgageInitial = MortgageDetails & { payments: MortgagePayment[] };
+
 interface AccountFormProps {
   account?: Account;
   vestingEvents?: VestingEvent[];
+  mortgageDetails?: MortgageInitial;
 }
 
-export function AccountForm({ account, vestingEvents: initialEvents = [] }: AccountFormProps) {
+export function AccountForm({ account, vestingEvents: initialEvents = [], mortgageDetails }: AccountFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,7 +49,11 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
     }))
   );
 
+  const [mortgageData, setMortgageData] = useState<MortgageData | null>(null);
+  const [mortgageValid, setMortgageValid] = useState(false);
+
   const isStockPlan = accountType === "STOCK_PLAN";
+  const isMortgage = accountType === "MORTGAGE";
   const isEdit = !!account;
 
   // Pre-fetch price when editing an existing stock plan account
@@ -88,13 +98,21 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
     setError(null);
     setLoading(true);
 
+    if (isMortgage && !mortgageValid) {
+      setError("Please fix the mortgage details before saving.");
+      setLoading(false);
+      return;
+    }
+
     const fd = new FormData(e.currentTarget);
     const name = fd.get("name") as string;
     const broker = fd.get("broker") as string;
     const balanceStr = fd.get("openingBalance") as string;
 
     try {
-      const openingBalanceCents = parseDollarsToCents(balanceStr || "0");
+      const openingBalanceCents = isMortgage
+        ? (mortgageData?.currentBalanceCents ?? 0)
+        : parseDollarsToCents(balanceStr || "0");
 
       const vestingEventsData = isStockPlan
         ? events
@@ -108,17 +126,25 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
         broker: broker || undefined,
         ticker: isStockPlan ? ticker.trim().toUpperCase() || undefined : undefined,
         openingBalanceCents,
-        isLiability: accountType === "CREDIT_CARD",
+        isLiability: LIABILITY_TYPES.has(accountType),
         color: ACCOUNT_TYPE_COLOR[accountType],
         currency: "USD",
         vestingEvents: vestingEventsData,
       };
 
+      let accountId: string;
       if (isEdit) {
         await updateAccount(account.id, data);
+        accountId = account.id;
       } else {
-        await createAccount(data);
+        const created = await createAccount(data);
+        accountId = created.id;
       }
+
+      if (isMortgage && mortgageData) {
+        await saveMortgageDetails(accountId, mortgageData);
+      }
+
       router.push("/accounts");
       router.refresh();
     } catch (err) {
@@ -173,19 +199,49 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
         </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="openingBalance">
-          {isStockPlan ? "Unvested Amount" : "Current Balance"}
-        </Label>
-        <Input
-          id="openingBalance"
-          name="openingBalance"
-          type="text"
-          inputMode="decimal"
-          defaultValue={account ? centsToDisplay(account.openingBalanceCents) : "0.00"}
-          placeholder="0.00"
+      {isMortgage ? (
+        <MortgageFields
+          initial={
+            mortgageDetails
+              ? {
+                  homeValueCents: mortgageDetails.homeValueCents,
+                  principalCents: mortgageDetails.principalCents,
+                  annualRateBps: mortgageDetails.annualRateBps,
+                  termMonths: mortgageDetails.termMonths,
+                  originationDate: new Date(mortgageDetails.originationDate)
+                    .toISOString()
+                    .slice(0, 10),
+                  payments: mortgageDetails.payments.map((p) => ({
+                    paymentNumber: p.paymentNumber,
+                    paymentDate: new Date(p.paymentDate).toISOString().slice(0, 10),
+                    paymentCents: p.paymentCents,
+                    principalCents: p.principalCents,
+                    interestCents: p.interestCents,
+                    balanceCents: p.balanceCents,
+                  })),
+                }
+              : undefined
+          }
+          onChange={(data, valid) => {
+            setMortgageData(data);
+            setMortgageValid(valid);
+          }}
         />
-      </div>
+      ) : (
+        <div className="space-y-1.5">
+          <Label htmlFor="openingBalance">
+            {isStockPlan ? "Unvested Amount" : "Current Balance"}
+          </Label>
+          <Input
+            id="openingBalance"
+            name="openingBalance"
+            type="text"
+            inputMode="decimal"
+            defaultValue={account ? centsToDisplay(account.openingBalanceCents) : "0.00"}
+            placeholder="0.00"
+          />
+        </div>
+      )}
 
       {isStockPlan && (
         <>
