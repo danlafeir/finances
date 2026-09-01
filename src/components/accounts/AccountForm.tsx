@@ -182,7 +182,7 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
           ) : (
             <Select value={accountType} onValueChange={(v) => v && setAccountType(v as typeof accountType)} required>
               <SelectTrigger>
-                <SelectValue placeholder="Select type" />
+                {ACCOUNT_TYPES.find((t) => t.value === accountType)?.label ?? <span className="text-muted-foreground">Select type</span>}
               </SelectTrigger>
               <SelectContent>
                 {ACCOUNT_TYPES.map((t) => (
