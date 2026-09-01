@@ -173,18 +173,24 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
 
         <div className="space-y-1.5">
           <Label htmlFor="type">Account Type</Label>
-          <Select value={accountType} onValueChange={(v) => v && setAccountType(v as typeof accountType)} required>
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCOUNT_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value}>
-                  {t.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isEdit ? (
+            <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed">
+              {ACCOUNT_TYPES.find((t) => t.value === accountType)?.label ?? accountType}
+            </div>
+          ) : (
+            <Select value={accountType} onValueChange={(v) => v && setAccountType(v as typeof accountType)} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCOUNT_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="space-y-1.5">
