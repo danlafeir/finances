@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { createAccount, updateAccount, lookupTickerPrice } from "@/actions/accounts";
 import { parseDollarsToCents, centsToDisplay, formatCents } from "@/lib/money";
-import { ACCOUNT_TYPES, BROKERS } from "@/lib/accounts";
+import { ACCOUNT_TYPES, BROKERS, ACCOUNT_TYPE_COLOR } from "@/lib/accounts";
 import type { Account, VestingEvent } from "@/generated/prisma/client";
 
 interface EventRow {
@@ -92,7 +92,6 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
     const name = fd.get("name") as string;
     const broker = fd.get("broker") as string;
     const balanceStr = fd.get("openingBalance") as string;
-    const color = fd.get("color") as string;
 
     try {
       const openingBalanceCents = parseDollarsToCents(balanceStr || "0");
@@ -110,7 +109,7 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
         ticker: isStockPlan ? ticker.trim().toUpperCase() || undefined : undefined,
         openingBalanceCents,
         isLiability: false,
-        color: color || undefined,
+        color: ACCOUNT_TYPE_COLOR[accountType],
         currency: "USD",
         vestingEvents: vestingEventsData,
       };
@@ -259,17 +258,6 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
           </div>
         </>
       )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="color">Color (optional)</Label>
-        <Input
-          id="color"
-          name="color"
-          type="color"
-          defaultValue={account?.color ?? "#6366f1"}
-          className="h-10 w-16 p-1"
-        />
-      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

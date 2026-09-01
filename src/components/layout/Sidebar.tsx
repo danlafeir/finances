@@ -6,10 +6,8 @@ import {
   LayoutDashboard,
   Wallet,
   ArrowLeftRight,
-  Tags,
   PiggyBank,
   TrendingUp,
-  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,10 +15,8 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/categories", label: "Categories", icon: Tags },
   { href: "/budgets", label: "Budgets", icon: PiggyBank },
   { href: "/investments", label: "Investments", icon: TrendingUp },
-  { href: "/import", label: "Import CSV", icon: Upload },
 ];
 
 export function Sidebar() {

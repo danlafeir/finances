@@ -19,3 +19,11 @@ export const BROKERS = [
 export const ACCOUNT_TYPE_LABEL: Record<string, string> = Object.fromEntries(
   ACCOUNT_TYPES.map(({ value, label }) => [value, label])
 );
+
+export const ACCOUNT_TYPE_COLOR: Record<string, string> = {
+  CHECKING: "#4f86c6",
+  CASH: "#4caf82",
+  QUALIFIED_BROKERAGE: "#7c5cbf",
+  TAXABLE_BROKERAGE: "#a855a0",
+  STOCK_PLAN: "#e07b3a",
+};
