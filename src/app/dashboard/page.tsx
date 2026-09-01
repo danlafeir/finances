@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
 import { BudgetStatusBars } from "@/components/dashboard/BudgetStatusBars";
-import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { SpendingByCategory } from "@/components/dashboard/SpendingByCategory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
@@ -68,9 +67,6 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <Suspense fallback={<div className="h-48 rounded-lg bg-muted animate-pulse" />}>
-        <RecentTransactions />
-      </Suspense>
     </div>
   );
 }

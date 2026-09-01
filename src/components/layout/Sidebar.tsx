@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Wallet,
-  ArrowLeftRight,
   PiggyBank,
   TrendingUp,
 } from "lucide-react";
@@ -14,7 +13,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Wallet },
-  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/budgets", label: "Budgets", icon: PiggyBank },
   { href: "/investments", label: "Investments", icon: TrendingUp },
 ];
