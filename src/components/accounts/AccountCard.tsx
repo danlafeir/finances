@@ -33,6 +33,11 @@ export function AccountCard({ account }: AccountCardProps) {
           <p className={`text-2xl font-bold tabular-nums ${isNegative ? "text-destructive" : ""}`}>
             {formatCents(account.balanceCents)}
           </p>
+          {account.snapshotDate && (
+            <p className="text-xs text-muted-foreground mt-1">
+              As of {new Date(account.snapshotDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </p>
+          )}
           {account.isLiability && (
             <p className="text-xs text-muted-foreground mt-1">Liability (subtracts from net worth)</p>
           )}
