@@ -80,6 +80,37 @@ export function getScheduleSummary(
   return { currentBalanceCents, nextPayment, paidOffPercent };
 }
 
+export function generateSyntheticSchedule(
+  principalCents: number,
+  annualRateBps: number,
+  monthlyPaymentCents: number,
+  firstPaymentDate: string,
+  termMonths: number
+): ScheduleRow[] {
+  if (principalCents <= 0 || monthlyPaymentCents <= 0 || termMonths <= 0) return [];
+  const r = annualRateBps / 10000 / 12;
+  const rows: ScheduleRow[] = [];
+  let balance = principalCents;
+  const date = new Date(firstPaymentDate + "T12:00:00Z");
+
+  for (let i = 1; i <= termMonths && balance > 1; i++) {
+    const interestCents = Math.round(balance * r);
+    const principalPaid = Math.min(monthlyPaymentCents - interestCents, balance);
+    if (principalPaid <= 0) break;
+    balance = Math.max(0, balance - principalPaid);
+    rows.push({
+      paymentNumber: i,
+      paymentDate: date.toISOString().slice(0, 10),
+      paymentCents: principalPaid + interestCents,
+      principalCents: principalPaid,
+      interestCents,
+      balanceCents: balance,
+    });
+    date.setUTCMonth(date.getUTCMonth() + 1);
+  }
+  return rows;
+}
+
 // Keep for use in MortgageData currentBalanceCents population
 export function getCurrentBalanceCents(
   payments: ScheduleRow[],
