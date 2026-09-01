@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Wallet,
   PiggyBank,
+  ShoppingCart,
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/budgets", label: "Budgets", icon: PiggyBank },
+  { href: "/spending", label: "Spending", icon: ShoppingCart },
   { href: "/investments", label: "Investments", icon: TrendingUp },
 ];
 

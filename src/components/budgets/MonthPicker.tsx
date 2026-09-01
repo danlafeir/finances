@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { prevMonthKey, nextMonthKey, monthKeyLabel } from "@/lib/dates";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,11 +12,12 @@ interface MonthPickerProps {
 export function MonthPicker({ currentMonth }: MonthPickerProps) {
   const router = useRouter();
   const sp = useSearchParams();
+  const pathname = usePathname();
 
   function navigate(key: string) {
     const params = new URLSearchParams(sp.toString());
     params.set("month", key);
-    router.push(`/budgets?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   }
 
   return (
