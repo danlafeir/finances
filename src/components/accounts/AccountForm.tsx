@@ -208,7 +208,7 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
                   principalCents: mortgageDetails.principalCents,
                   annualRateBps: mortgageDetails.annualRateBps,
                   termMonths: mortgageDetails.termMonths,
-                  originationDate: new Date(mortgageDetails.originationDate)
+                  firstPaymentDate: new Date(mortgageDetails.firstPaymentDate)
                     .toISOString()
                     .slice(0, 10),
                   payments: mortgageDetails.payments.map((p) => ({

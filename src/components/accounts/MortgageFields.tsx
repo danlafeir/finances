@@ -2,13 +2,13 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Upload, AlertTriangle, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parseCsvText } from "@/lib/csv/parser";
 import { formatCents } from "@/lib/money";
 import {
   calcMonthlyPaymentCents,
+  calcTermMonths,
   getCurrentBalanceCents,
   type MortgageData,
   type ScheduleRow,
@@ -24,7 +24,7 @@ interface InitialValues {
   principalCents: number;
   annualRateBps: number;
   termMonths: number;
-  originationDate: string;
+  firstPaymentDate: string;
   payments: ScheduleRow[];
 }
 
@@ -61,7 +61,8 @@ export function MortgageFields({ initial, onChange }: Props) {
   const [termYears, setTermYears] = useState(
     initial?.termMonths ? String(initial.termMonths / 12) : ""
   );
-  const [originationDate, setOriginationDate] = useState(initial?.originationDate ?? "");
+  const [monthlyPayment, setMonthlyPayment] = useState("");
+  const [firstPaymentDate, setFirstPaymentDate] = useState(initial?.firstPaymentDate ?? "");
   const [schedule, setSchedule] = useState<ScheduleRow[]>(initial?.payments ?? []);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
@@ -70,30 +71,70 @@ export function MortgageFields({ initial, onChange }: Props) {
     const homeValueCents = Math.round(parseFloat(homeValue.replace(/[$,]/g, "") || "0") * 100);
     const principalCents = Math.round(parseFloat(principal.replace(/[$,]/g, "") || "0") * 100);
     const annualRateBps = Math.round(parseFloat(rate || "0") * 100);
-    const termMonths = Math.round(parseFloat(termYears || "0") * 12);
+
+    const enteredPaymentCents = monthlyPayment.trim()
+      ? Math.round(parseFloat(monthlyPayment.replace(/[$,]/g, "") || "0") * 100)
+      : 0;
+
+    let termFromPaymentMonths: number | null = null;
+    let effectiveTermMonths: number;
+
+    if (enteredPaymentCents > 0) {
+      termFromPaymentMonths = calcTermMonths(principalCents, annualRateBps, enteredPaymentCents);
+      effectiveTermMonths = termFromPaymentMonths ?? 0;
+    } else {
+      effectiveTermMonths = Math.round(parseFloat(termYears || "0") * 12);
+    }
+
+    const effectivePaymentCents =
+      enteredPaymentCents > 0
+        ? enteredPaymentCents
+        : calcMonthlyPaymentCents(principalCents, annualRateBps, effectiveTermMonths);
 
     const issues: Issue[] = [];
 
-    // Hard errors
     if (homeValueCents <= 0) issues.push({ type: "error", message: "Home value is required." });
     if (principalCents <= 0) issues.push({ type: "error", message: "Loan amount is required." });
     if (annualRateBps <= 0 || annualRateBps > 5000)
       issues.push({ type: "error", message: "Interest rate must be between 0.01% and 50%." });
-    if (termMonths < 12 || termMonths > 600)
-      issues.push({ type: "error", message: "Term must be between 1 and 50 years." });
-    if (!originationDate)
-      issues.push({ type: "error", message: "Closing date is required." });
+    if (!firstPaymentDate)
+      issues.push({ type: "error", message: "First payment date is required." });
 
-    // Warnings
+    if (enteredPaymentCents > 0) {
+      if (principalCents > 0 && annualRateBps > 0) {
+        const monthlyInterestCents = Math.round(principalCents * (annualRateBps / 10000 / 12));
+        if (enteredPaymentCents <= monthlyInterestCents) {
+          issues.push({
+            type: "error",
+            message: `Monthly payment must exceed monthly interest (${formatCents(monthlyInterestCents)}) to pay off the loan.`,
+          });
+        }
+      }
+      if (
+        termFromPaymentMonths !== null &&
+        (termFromPaymentMonths < 12 || termFromPaymentMonths > 600)
+      ) {
+        issues.push({
+          type: "error",
+          message: "Computed term is outside reasonable range (1–50 years).",
+        });
+      }
+    } else {
+      if (effectiveTermMonths > 0 && (effectiveTermMonths < 12 || effectiveTermMonths > 600)) {
+        issues.push({ type: "error", message: "Term must be between 1 and 50 years." });
+      }
+    }
+
     if (homeValueCents > 0 && principalCents > homeValueCents)
-      issues.push({ type: "warning", message: "Loan amount exceeds home value — negative equity at origination." });
+      issues.push({
+        type: "warning",
+        message: "Loan amount exceeds home value — negative equity at origination.",
+      });
     else if (homeValueCents > 0 && principalCents > 0 && principalCents / homeValueCents > 0.8)
       issues.push({
         type: "warning",
         message: `LTV is ${Math.round((principalCents / homeValueCents) * 100)}% — PMI likely applies above 80%.`,
       });
-
-    const calcPayment = calcMonthlyPaymentCents(principalCents, annualRateBps, termMonths);
 
     if (schedule.length > 0 && principalCents > 0) {
       const firstBalance = schedule[0].balanceCents;
@@ -104,16 +145,17 @@ export function MortgageFields({ initial, onChange }: Props) {
         });
 
       const schedPayment = schedule[0].paymentCents;
-      if (calcPayment > 0 && Math.abs(calcPayment - schedPayment) > 500)
+      if (effectivePaymentCents > 0 && Math.abs(effectivePaymentCents - schedPayment) > 500)
         issues.push({
           type: "warning",
-          message: `Schedule payment (${formatCents(schedPayment)}) differs from calculated payment (${formatCents(calcPayment)}) by ${formatCents(Math.abs(calcPayment - schedPayment))}.`,
+          message: `Schedule payment (${formatCents(schedPayment)}) differs from ${enteredPaymentCents > 0 ? "entered" : "calculated"} payment (${formatCents(effectivePaymentCents)}) by ${formatCents(Math.abs(effectivePaymentCents - schedPayment))}.`,
         });
 
-      if (termMonths > 0 && Math.abs(schedule.length - termMonths) > 2)
+      const termMonthsRounded = Math.round(effectiveTermMonths);
+      if (termMonthsRounded > 0 && Math.abs(schedule.length - termMonthsRounded) > 2)
         issues.push({
           type: "warning",
-          message: `Schedule has ${schedule.length} payments but term is ${termMonths} months.`,
+          message: `Schedule has ${schedule.length} payments but term is ${termMonthsRounded} months.`,
         });
 
       const lastBalance = schedule[schedule.length - 1].balanceCents;
@@ -124,11 +166,8 @@ export function MortgageFields({ initial, onChange }: Props) {
         });
     }
 
-    if (schedule.length > 0 && calcPayment > 0)
-      issues.push({
-        type: "info",
-        message: `${schedule.length} payments loaded. Calculated monthly payment: ${formatCents(calcPayment)}.`,
-      });
+    if (schedule.length > 0)
+      issues.push({ type: "info", message: `${schedule.length} payments loaded.` });
 
     const hasErrors = issues.some((i) => i.type === "error");
     const currentBalanceCents = getCurrentBalanceCents(schedule, principalCents);
@@ -139,15 +178,24 @@ export function MortgageFields({ initial, onChange }: Props) {
           homeValueCents,
           principalCents,
           annualRateBps,
-          termMonths,
-          originationDate,
-          monthlyPaymentCents: calcPayment,
+          termMonths: Math.round(effectiveTermMonths),
+          firstPaymentDate,
+          monthlyPaymentCents: effectivePaymentCents,
           currentBalanceCents,
           payments: schedule,
         };
 
-    return { issues, calcPayment, data, isValid: !hasErrors, currentBalanceCents, homeValueCents };
-  }, [homeValue, principal, rate, termYears, originationDate, schedule]);
+    return {
+      issues,
+      effectivePaymentCents,
+      data,
+      isValid: !hasErrors,
+      currentBalanceCents,
+      homeValueCents,
+      termFromPaymentMonths,
+      enteredPaymentCents,
+    };
+  }, [homeValue, principal, rate, termYears, monthlyPayment, firstPaymentDate, schedule]);
 
   const stableOnChange = useCallback(onChange, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -205,7 +253,6 @@ export function MortgageFields({ initial, onChange }: Props) {
       setSchedule(parsed);
     };
     reader.readAsText(file);
-    // Reset input so the same file can be re-uploaded
     e.target.value = "";
   }
 
@@ -214,7 +261,6 @@ export function MortgageFields({ initial, onChange }: Props) {
       ? computed.homeValueCents - computed.currentBalanceCents
       : null;
 
-  // Find the row nearest today for preview
   const today = new Date();
   const upcomingIdx = schedule.findIndex((p) => new Date(p.paymentDate) > today);
   const previewRows =
@@ -223,6 +269,12 @@ export function MortgageFields({ initial, onChange }: Props) {
       : upcomingIdx > 1
       ? schedule.slice(Math.max(0, upcomingIdx - 1), upcomingIdx + 3)
       : schedule.slice(0, 4);
+
+  const termIsLocked =
+    computed.enteredPaymentCents > 0 && computed.termFromPaymentMonths !== null;
+  const termDisplayValue = termIsLocked
+    ? (computed.termFromPaymentMonths! / 12).toFixed(2)
+    : termYears;
 
   return (
     <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
@@ -260,62 +312,80 @@ export function MortgageFields({ initial, onChange }: Props) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="termYears">Term (years)</Label>
+          <Label htmlFor="termYears">
+            Term (years)
+            {termIsLocked && (
+              <span className="text-xs text-muted-foreground ml-1">— from payment</span>
+            )}
+          </Label>
           <Input
             id="termYears"
-            value={termYears}
-            onChange={(e) => setTermYears(e.target.value)}
+            value={termDisplayValue}
+            onChange={(e) => !termIsLocked && setTermYears(e.target.value)}
             placeholder="30"
-            inputMode="numeric"
+            inputMode="decimal"
+            disabled={termIsLocked}
           />
         </div>
-        <div className="col-span-2 space-y-1.5">
-          <Label htmlFor="originationDate">Closing Date</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="monthlyPayment">
+            Monthly Payment{" "}
+            <span className="text-xs text-muted-foreground">(optional — calculates term)</span>
+          </Label>
           <Input
-            id="originationDate"
+            id="monthlyPayment"
+            value={monthlyPayment}
+            onChange={(e) => setMonthlyPayment(e.target.value)}
+            placeholder="2000.00"
+            inputMode="decimal"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="firstPaymentDate">First Payment Date</Label>
+          <Input
+            id="firstPaymentDate"
             type="date"
-            value={originationDate}
-            onChange={(e) => setOriginationDate(e.target.value)}
+            value={firstPaymentDate}
+            onChange={(e) => setFirstPaymentDate(e.target.value)}
           />
         </div>
       </div>
 
-      {computed.calcPayment > 0 && (
+      {computed.enteredPaymentCents === 0 && computed.effectivePaymentCents > 0 && (
         <div className="text-sm text-muted-foreground">
           Calculated monthly payment:{" "}
-          <span className="font-medium text-foreground">{formatCents(computed.calcPayment)}</span>
+          <span className="font-medium text-foreground">
+            {formatCents(computed.effectivePaymentCents)}
+          </span>
         </div>
       )}
 
-      {/* Computed equity preview */}
       {equity !== null && (
         <div className="flex gap-6 text-sm">
           <div>
             <span className="text-muted-foreground">Current balance </span>
-            <span className="font-medium tabular-nums">{formatCents(computed.currentBalanceCents)}</span>
+            <span className="font-medium tabular-nums">
+              {formatCents(computed.currentBalanceCents)}
+            </span>
           </div>
           <div>
             <span className="text-muted-foreground">Equity </span>
-            <span className={`font-medium tabular-nums ${equity >= 0 ? "text-primary" : "text-destructive"}`}>
+            <span
+              className={`font-medium tabular-nums ${equity >= 0 ? "text-primary" : "text-destructive"}`}
+            >
               {formatCents(equity)}
             </span>
           </div>
         </div>
       )}
 
-      {/* CSV upload */}
       <div className="space-y-2">
         <Label>Amortization Schedule (optional)</Label>
         <div className="flex items-center gap-3">
           <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border rounded-md cursor-pointer hover:bg-accent transition-colors">
             <Upload className="h-3 w-3" />
             {csvFileName ?? "Upload CSV"}
-            <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={handleCsvUpload}
-            />
+            <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
           </label>
           {schedule.length > 0 && (
             <span className="text-xs text-muted-foreground">{schedule.length} payments</span>
@@ -327,14 +397,19 @@ export function MortgageFields({ initial, onChange }: Props) {
         {csvError && <p className="text-xs text-destructive">{csvError}</p>}
       </div>
 
-      {/* Validation issues */}
       {computed.issues.length > 0 && (
         <div className="space-y-1.5">
           {computed.issues.map((issue, i) => (
-            <div key={i} className={`flex gap-2 text-xs ${
-              issue.type === "error" ? "text-destructive" :
-              issue.type === "warning" ? "text-amber-600" : "text-muted-foreground"
-            }`}>
+            <div
+              key={i}
+              className={`flex gap-2 text-xs ${
+                issue.type === "error"
+                  ? "text-destructive"
+                  : issue.type === "warning"
+                  ? "text-amber-600"
+                  : "text-muted-foreground"
+              }`}
+            >
               {issue.type === "error" || issue.type === "warning" ? (
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               ) : (
@@ -346,7 +421,6 @@ export function MortgageFields({ initial, onChange }: Props) {
         </div>
       )}
 
-      {/* Schedule preview */}
       {previewRows.length > 0 && (
         <div className="overflow-x-auto">
           <p className="text-xs text-muted-foreground mb-1.5">

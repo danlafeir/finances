@@ -56,7 +56,7 @@ model MortgageDetails {
   principalCents      Int
   annualRateBps       Int
   termMonths          Int
-  originationDate     DateTime
+  firstPaymentDate    DateTime
   monthlyPaymentCents Int
   payments            MortgagePayment[]
   createdAt           DateTime          @default(now())

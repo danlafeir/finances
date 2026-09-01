@@ -12,7 +12,7 @@ export interface MortgageData {
   principalCents: number;
   annualRateBps: number;
   termMonths: number;
-  originationDate: string; // YYYY-MM-DD
+  firstPaymentDate: string; // YYYY-MM-DD
   monthlyPaymentCents: number;
   currentBalanceCents: number;
   payments: ScheduleRow[];
@@ -30,6 +30,18 @@ export function calcMonthlyPaymentCents(
     (principalCents * (r * Math.pow(1 + r, termMonths))) /
     (Math.pow(1 + r, termMonths) - 1);
   return Math.round(payment);
+}
+
+export function calcTermMonths(
+  principalCents: number,
+  annualRateBps: number,
+  paymentCents: number
+): number | null {
+  if (principalCents <= 0 || annualRateBps <= 0 || paymentCents <= 0) return null;
+  const r = annualRateBps / 10000 / 12;
+  if (paymentCents <= principalCents * r) return null; // payment can't cover interest
+  const n = -Math.log(1 - (principalCents * r) / paymentCents) / Math.log(1 + r);
+  return n;
 }
 
 export function getCurrentBalanceCents(

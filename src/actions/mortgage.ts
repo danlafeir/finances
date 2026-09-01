@@ -14,7 +14,7 @@ export async function saveMortgageDetails(accountId: string, data: MortgageData)
         principalCents: data.principalCents,
         annualRateBps: data.annualRateBps,
         termMonths: data.termMonths,
-        originationDate: new Date(data.originationDate),
+        firstPaymentDate: new Date(data.firstPaymentDate),
         monthlyPaymentCents: data.monthlyPaymentCents,
       },
       update: {
@@ -22,7 +22,7 @@ export async function saveMortgageDetails(accountId: string, data: MortgageData)
         principalCents: data.principalCents,
         annualRateBps: data.annualRateBps,
         termMonths: data.termMonths,
-        originationDate: new Date(data.originationDate),
+        firstPaymentDate: new Date(data.firstPaymentDate),
         monthlyPaymentCents: data.monthlyPaymentCents,
       },
     });
