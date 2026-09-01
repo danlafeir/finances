@@ -31,6 +31,7 @@ model Account {
   name                String
   type                AccountType
   broker              String?
+  ticker              String?
   isLiability         Boolean     @default(false)
   openingBalanceCents Int         @default(0)
   currency            String      @default("USD")
@@ -41,6 +42,19 @@ model Account {
   updatedAt           DateTime    @updatedAt
   transactions        Transaction[]
   holdings            Holding[]
+  vestingEvents       VestingEvent[]
+}
+
+model VestingEvent {
+  id        String   @id @default(cuid())
+  date      DateTime
+  shares    Float
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+  @@index([date])
 }
 
 model Category {
