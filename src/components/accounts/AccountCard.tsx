@@ -10,8 +10,6 @@ interface AccountCardProps {
 }
 
 export function AccountCard({ account }: AccountCardProps) {
-  const isNegative = account.balanceCents < 0;
-
   return (
     <Link href={`/accounts/${account.id}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
@@ -26,11 +24,16 @@ export function AccountCard({ account }: AccountCardProps) {
               )}
               <CardTitle className="text-base">{account.name}</CardTitle>
             </div>
-            <Badge variant="secondary">{ACCOUNT_TYPE_LABEL[account.type] ?? account.type}</Badge>
+            <Badge
+              variant="secondary"
+              className={account.isLiability ? "text-destructive" : "text-emerald-600"}
+            >
+              {ACCOUNT_TYPE_LABEL[account.type] ?? account.type}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <p className={`text-2xl font-bold tabular-nums ${isNegative ? "text-destructive" : ""}`}>
+          <p className="text-2xl font-bold tabular-nums">
             {formatCents(account.balanceCents)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
@@ -40,9 +43,6 @@ export function AccountCard({ account }: AccountCardProps) {
               : new Date()
             ).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
-          {account.isLiability && (
-            <p className="text-xs text-muted-foreground mt-1">Liability (subtracts from net worth)</p>
-          )}
         </CardContent>
       </Card>
     </Link>
