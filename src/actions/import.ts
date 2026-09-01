@@ -24,7 +24,7 @@ export async function commitImport(rows: ImportRow[]): Promise<{ imported: numbe
     const extId =
       r.externalId?.trim() ||
       createHash("sha256")
-        .update(`${r.date}|${r.description}|${r.amountCents}`)
+        .update(`${r.accountId}|${r.date}|${r.description}|${r.amountCents}`)
         .digest("hex")
         .slice(0, 32);
     return { ...r, externalId: extId };
