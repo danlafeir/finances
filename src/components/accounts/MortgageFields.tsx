@@ -24,6 +24,7 @@ interface InitialValues {
   principalCents: number;
   annualRateBps: number;
   termMonths: number;
+  monthlyPaymentCents: number;
   firstPaymentDate: string;
   payments: ScheduleRow[];
 }
@@ -33,8 +34,21 @@ interface Props {
   onChange: (data: MortgageData | null, isValid: boolean) => void;
 }
 
+// Dollar amount string → dollars (strips commas/$ signs)
+function parseDollars(s: string): number {
+  return parseFloat(s.replace(/[$,]/g, "") || "0") || 0;
+}
+
+// Dollars → comma-formatted string with 2 decimal places
+function formatDollars(dollars: number): string {
+  if (!dollars) return "";
+  return dollars.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function detectColumns(headers: string[]) {
-  // Try keywords in priority order — first match wins.
   const findBest = (...keywords: string[]) => {
     for (const kw of keywords) {
       const match = headers.find((h) => h.toLowerCase().includes(kw));
@@ -44,7 +58,6 @@ function detectColumns(headers: string[]) {
   };
 
   const dateCol = findBest("payment date", "date");
-  // Exclude the date column so "Payment Date" doesn't shadow "Payment Due".
   const nonDate = headers.filter((h) => h !== dateCol);
   const findNonDate = (...keywords: string[]) => {
     for (const kw of keywords) {
@@ -70,29 +83,68 @@ function parseCents(raw: string | undefined): number {
 }
 
 export function MortgageFields({ initial, onChange }: Props) {
-  const fmt = (cents: number) => (cents > 0 ? (cents / 100).toFixed(2) : "");
-
-  const [homeValue, setHomeValue] = useState(fmt(initial?.homeValueCents ?? 0));
-  const [principal, setPrincipal] = useState(fmt(initial?.principalCents ?? 0));
+  const [homeValue, setHomeValue] = useState(
+    initial?.homeValueCents ? formatDollars(initial.homeValueCents / 100) : ""
+  );
+  const [principal, setPrincipal] = useState(
+    initial?.principalCents ? formatDollars(initial.principalCents / 100) : ""
+  );
   const [rate, setRate] = useState(
     initial?.annualRateBps ? (initial.annualRateBps / 100).toFixed(3) : ""
   );
   const [termYears, setTermYears] = useState(
-    initial?.termMonths ? String(initial.termMonths / 12) : ""
+    initial?.termMonths ? (initial.termMonths / 12).toFixed(2) : ""
   );
-  const [monthlyPayment, setMonthlyPayment] = useState("");
+  const [monthlyPayment, setMonthlyPayment] = useState(
+    initial?.monthlyPaymentCents ? formatDollars(initial.monthlyPaymentCents / 100) : ""
+  );
   const [firstPaymentDate, setFirstPaymentDate] = useState(initial?.firstPaymentDate ?? "");
   const [schedule, setSchedule] = useState<ScheduleRow[]>(initial?.payments ?? []);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
 
+  // Derive principal/rate cents inline for blur cross-updates
+  function currentPrincipalCents() {
+    return Math.round(parseDollars(principal) * 100);
+  }
+  function currentAnnualRateBps() {
+    return Math.round(parseFloat(rate || "0") * 100);
+  }
+
+  function handleTermBlur(val: string) {
+    const n = parseFloat(val || "");
+    const formatted = isNaN(n) ? val : n.toFixed(2);
+    setTermYears(formatted);
+    // Populate monthly payment from term
+    const months = isNaN(n) ? 0 : Math.round(n * 12);
+    const p = currentPrincipalCents();
+    const bps = currentAnnualRateBps();
+    if (months > 0 && p > 0 && bps > 0) {
+      const cents = calcMonthlyPaymentCents(p, bps, months);
+      if (cents > 0) setMonthlyPayment(formatDollars(cents / 100));
+    }
+  }
+
+  function handlePaymentBlur(val: string) {
+    const dollars = parseDollars(val);
+    if (dollars > 0) setMonthlyPayment(formatDollars(dollars));
+    // Populate term from payment
+    const cents = Math.round(dollars * 100);
+    const p = currentPrincipalCents();
+    const bps = currentAnnualRateBps();
+    if (cents > 0 && p > 0 && bps > 0) {
+      const months = calcTermMonths(p, bps, cents);
+      if (months !== null) setTermYears((months / 12).toFixed(2));
+    }
+  }
+
   const computed = useMemo(() => {
-    const homeValueCents = Math.round(parseFloat(homeValue.replace(/[$,]/g, "") || "0") * 100);
-    const principalCents = Math.round(parseFloat(principal.replace(/[$,]/g, "") || "0") * 100);
+    const homeValueCents = Math.round(parseDollars(homeValue) * 100);
+    const principalCents = Math.round(parseDollars(principal) * 100);
     const annualRateBps = Math.round(parseFloat(rate || "0") * 100);
 
     const enteredPaymentCents = monthlyPayment.trim()
-      ? Math.round(parseFloat(monthlyPayment.replace(/[$,]/g, "") || "0") * 100)
+      ? Math.round(parseDollars(monthlyPayment) * 100)
       : 0;
 
     let termFromPaymentMonths: number | null = null;
@@ -185,13 +237,10 @@ export function MortgageFields({ initial, onChange }: Props) {
 
     return {
       issues,
-      effectivePaymentCents,
       data,
       isValid: !hasErrors,
       currentBalanceCents,
       homeValueCents,
-      termFromPaymentMonths,
-      enteredPaymentCents,
     };
   }, [homeValue, principal, rate, termYears, monthlyPayment, firstPaymentDate, schedule]);
 
@@ -271,12 +320,6 @@ export function MortgageFields({ initial, onChange }: Props) {
       ? schedule.slice(Math.max(0, upcomingIdx - 1), upcomingIdx + 3)
       : schedule.slice(0, 4);
 
-  const termIsLocked =
-    computed.enteredPaymentCents > 0 && computed.termFromPaymentMonths !== null;
-  const termDisplayValue = termIsLocked
-    ? (computed.termFromPaymentMonths! / 12).toFixed(2)
-    : termYears;
-
   return (
     <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
       <p className="text-sm font-medium text-muted-foreground">Mortgage Details</p>
@@ -288,7 +331,8 @@ export function MortgageFields({ initial, onChange }: Props) {
             id="homeValue"
             value={homeValue}
             onChange={(e) => setHomeValue(e.target.value)}
-            placeholder="450000.00"
+            onBlur={() => setHomeValue(formatDollars(parseDollars(homeValue)))}
+            placeholder="450,000.00"
             inputMode="decimal"
           />
         </div>
@@ -298,7 +342,8 @@ export function MortgageFields({ initial, onChange }: Props) {
             id="loanAmount"
             value={principal}
             onChange={(e) => setPrincipal(e.target.value)}
-            placeholder="360000.00"
+            onBlur={() => setPrincipal(formatDollars(parseDollars(principal)))}
+            placeholder="360,000.00"
             inputMode="decimal"
           />
         </div>
@@ -308,36 +353,33 @@ export function MortgageFields({ initial, onChange }: Props) {
             id="rate"
             value={rate}
             onChange={(e) => setRate(e.target.value)}
+            onBlur={() => {
+              const n = parseFloat(rate || "");
+              if (!isNaN(n)) setRate(n.toFixed(3));
+            }}
             placeholder="6.750"
             inputMode="decimal"
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="termYears">
-            Term (years)
-            {termIsLocked && (
-              <span className="text-xs text-muted-foreground ml-1">— from payment</span>
-            )}
-          </Label>
+          <Label htmlFor="termYears">Term (years)</Label>
           <Input
             id="termYears"
-            value={termDisplayValue}
-            onChange={(e) => !termIsLocked && setTermYears(e.target.value)}
-            placeholder="30"
+            value={termYears}
+            onChange={(e) => setTermYears(e.target.value)}
+            onBlur={(e) => handleTermBlur(e.target.value)}
+            placeholder="30.00"
             inputMode="decimal"
-            disabled={termIsLocked}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="monthlyPayment">
-            Monthly Payment{" "}
-            <span className="text-xs text-muted-foreground">(optional — calculates term)</span>
-          </Label>
+          <Label htmlFor="monthlyPayment">Monthly Payment</Label>
           <Input
             id="monthlyPayment"
             value={monthlyPayment}
             onChange={(e) => setMonthlyPayment(e.target.value)}
-            placeholder="2000.00"
+            onBlur={(e) => handlePaymentBlur(e.target.value)}
+            placeholder="2,000.00"
             inputMode="decimal"
           />
         </div>
@@ -351,15 +393,6 @@ export function MortgageFields({ initial, onChange }: Props) {
           />
         </div>
       </div>
-
-      {computed.enteredPaymentCents === 0 && computed.effectivePaymentCents > 0 && (
-        <div className="text-sm text-muted-foreground">
-          Calculated monthly payment:{" "}
-          <span className="font-medium text-foreground">
-            {formatCents(computed.effectivePaymentCents)}
-          </span>
-        </div>
-      )}
 
       {equity !== null && (
         <div className="flex gap-6 text-sm">

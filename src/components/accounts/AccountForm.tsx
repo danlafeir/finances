@@ -219,6 +219,7 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
                   principalCents: mortgageDetails.principalCents,
                   annualRateBps: mortgageDetails.annualRateBps,
                   termMonths: mortgageDetails.termMonths,
+                  monthlyPaymentCents: mortgageDetails.monthlyPaymentCents,
                   firstPaymentDate: new Date(mortgageDetails.firstPaymentDate)
                     .toISOString()
                     .slice(0, 10),
