@@ -10,6 +10,7 @@ datasource db {
 enum AccountType {
   CHECKING
   CASH
+  CREDIT_CARD
   QUALIFIED_BROKERAGE
   TAXABLE_BROKERAGE
   STOCK_PLAN

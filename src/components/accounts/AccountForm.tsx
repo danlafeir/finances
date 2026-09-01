@@ -108,7 +108,7 @@ export function AccountForm({ account, vestingEvents: initialEvents = [] }: Acco
         broker: broker || undefined,
         ticker: isStockPlan ? ticker.trim().toUpperCase() || undefined : undefined,
         openingBalanceCents,
-        isLiability: false,
+        isLiability: accountType === "CREDIT_CARD",
         color: ACCOUNT_TYPE_COLOR[accountType],
         currency: "USD",
         vestingEvents: vestingEventsData,

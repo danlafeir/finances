@@ -1,6 +1,7 @@
 export const ACCOUNT_TYPES = [
   { value: "CHECKING", label: "Checking" },
   { value: "CASH", label: "High Yield Savings" },
+  { value: "CREDIT_CARD", label: "Credit Card" },
   { value: "QUALIFIED_BROKERAGE", label: "Qualified Brokerage" },
   { value: "TAXABLE_BROKERAGE", label: "Taxable Brokerage" },
   { value: "STOCK_PLAN", label: "Stock Plan" },
@@ -23,6 +24,7 @@ export const ACCOUNT_TYPE_LABEL: Record<string, string> = Object.fromEntries(
 export const ACCOUNT_TYPE_COLOR: Record<string, string> = {
   CHECKING: "#4f86c6",
   CASH: "#4caf82",
+  CREDIT_CARD: "#e05252",
   QUALIFIED_BROKERAGE: "#7c5cbf",
   TAXABLE_BROKERAGE: "#a855a0",
   STOCK_PLAN: "#e07b3a",
