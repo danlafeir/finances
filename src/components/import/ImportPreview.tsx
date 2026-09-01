@@ -3,33 +3,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatCents } from "@/lib/money";
 import { commitImport, type ImportRow } from "@/actions/import";
-import type { Category } from "@/generated/prisma/client";
 import { CheckCircle2 } from "lucide-react";
 
 interface ImportPreviewProps {
   rows: ImportRow[];
-  categories: Category[];
   onBack: () => void;
   onComplete: (imported: number, skipped: number) => void;
 }
 
-export function ImportPreview({ rows: initialRows, categories, onBack, onComplete }: ImportPreviewProps) {
-  const [rows, setRows] = useState(initialRows);
+export function ImportPreview({ rows, onBack, onComplete }: ImportPreviewProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function updateCategory(index: number, categoryId: string | null) {
-    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, categoryId } : r)));
-  }
 
   async function handleImport() {
     setLoading(true);
@@ -48,7 +34,7 @@ export function ImportPreview({ rows: initialRows, categories, onBack, onComplet
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {rows.length} transactions to import. You can set categories before importing.
+          {rows.length} transactions to import.
         </p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onBack} disabled={loading}>
@@ -69,26 +55,13 @@ export function ImportPreview({ rows: initialRows, categories, onBack, onComplet
               {new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
             <span className="flex-1 min-w-0 truncate">{row.description}</span>
-            <Badge variant={row.type === "INCOME" ? "outline" : "secondary"} className="shrink-0">
+            <Badge
+              variant="outline"
+              className={`shrink-0 tabular-nums ${row.type === "INCOME" ? "text-emerald-600" : "text-destructive"}`}
+            >
               {row.type === "INCOME" ? "+" : "-"}
               {formatCents(row.amountCents)}
             </Badge>
-            <Select
-              value={row.categoryId ?? ""}
-              onValueChange={(v) => updateCategory(i, v || null)}
-            >
-              <SelectTrigger className="w-36 h-7 text-xs">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Uncategorized</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.icon} {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         ))}
       </div>

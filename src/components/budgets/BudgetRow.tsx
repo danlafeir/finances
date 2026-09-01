@@ -8,16 +8,15 @@ import { formatCents, parseDollarsToCents, centsToDisplay } from "@/lib/money";
 import { upsertBudget, deleteBudget } from "@/actions/budgets";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, Check, X } from "lucide-react";
-import type { Category } from "@/generated/prisma/client";
 
 interface BudgetRowProps {
-  category: Category;
+  description: string;
   monthKey: string;
   limitCents: number | null;
   spentCents: number;
 }
 
-export function BudgetRow({ category, monthKey, limitCents, spentCents }: BudgetRowProps) {
+export function BudgetRow({ description, monthKey, limitCents, spentCents }: BudgetRowProps) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(limitCents ? centsToDisplay(limitCents) : "");
@@ -30,7 +29,7 @@ export function BudgetRow({ category, monthKey, limitCents, spentCents }: Budget
     setLoading(true);
     try {
       const cents = parseDollarsToCents(value || "0");
-      await upsertBudget(category.id, monthKey, cents);
+      await upsertBudget(description, monthKey, cents);
       setEditing(false);
       router.refresh();
     } finally {
@@ -40,7 +39,7 @@ export function BudgetRow({ category, monthKey, limitCents, spentCents }: Budget
 
   async function handleDelete() {
     setLoading(true);
-    await deleteBudget(category.id, monthKey);
+    await deleteBudget(description, monthKey);
     router.refresh();
     setLoading(false);
   }
@@ -48,11 +47,8 @@ export function BudgetRow({ category, monthKey, limitCents, spentCents }: Budget
   return (
     <div className="py-3 px-3 rounded-md hover:bg-muted/30 group">
       <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-2">
-          <span>{category.icon}</span>
-          <span className="text-sm font-medium">{category.name}</span>
-        </div>
-        <div className="flex items-center gap-2">
+        <span className="text-sm font-medium truncate mr-2">{description}</span>
+        <div className="flex items-center gap-2 shrink-0">
           {editing ? (
             <>
               <Input

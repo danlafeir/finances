@@ -37,7 +37,6 @@ export default async function AccountDetailPage({
         where: { accountId: id },
         orderBy: { date: "desc" },
         take: 50,
-        include: { category: true },
       })
     : [];
 
@@ -271,15 +270,10 @@ export default async function AccountDetailPage({
                       })}
                     </span>
                     <span className="font-medium">{t.description}</span>
-                    {t.category && (
-                      <Badge variant="outline" className="text-xs">
-                        {t.category.icon} {t.category.name}
-                      </Badge>
-                    )}
                   </div>
                   <span
                     className={`font-medium tabular-nums ${
-                      t.type === "INCOME" ? "text-emerald-600" : "text-foreground"
+                      t.type === "INCOME" ? "text-emerald-600" : "text-destructive"
                     }`}
                   >
                     {t.type === "INCOME" ? "+" : "-"}

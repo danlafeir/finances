@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getBudgetsForMonth } from "@/actions/budgets";
+import { getRecurringTransactions, getSpendingAccounts } from "@/actions/spending";
 import { MonthPicker } from "@/components/budgets/MonthPicker";
 import { BudgetRow } from "@/components/budgets/BudgetRow";
 import { monthKey } from "@/lib/dates";
@@ -12,10 +13,16 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const currentMonth = sp.month ?? monthKey(new Date());
 
-  const { budgetRows, categories, spendingMap } = await getBudgetsForMonth(currentMonth);
+  const spendingAccounts = await getSpendingAccounts();
+  const accountIds = spendingAccounts.map((a) => a.id);
 
-  const budgetedCategoryIds = new Set(budgetRows.map((b) => b.categoryId));
-  const unbudgetedCategories = categories.filter((c) => !budgetedCategoryIds.has(c.id));
+  const [{ budgetRows }, recurring] = await Promise.all([
+    getBudgetsForMonth(currentMonth),
+    getRecurringTransactions(currentMonth, accountIds),
+  ]);
+
+  const budgetedDescriptions = new Set(budgetRows.map((b) => b.description));
+  const unbudgetedRecurring = recurring.filter((r) => !budgetedDescriptions.has(r.description));
 
   const totalLimit = budgetRows.reduce((s, b) => s + b.limitCents, 0);
   const totalSpent = budgetRows.reduce((s, b) => s + b.spentCents, 0);
@@ -37,16 +44,16 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
       )}
 
       <div className="space-y-0 mb-6">
-        <h2 className="text-sm font-medium text-muted-foreground mb-1">Budgeted Categories</h2>
+        <h2 className="text-sm font-medium text-muted-foreground mb-1">Budgeted</h2>
         {budgetRows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">
-            No budgets set yet. Add a budget to a category below.
+            No budgets set yet. Set a limit on a recurring charge below.
           </p>
         ) : (
           budgetRows.map((b) => (
             <BudgetRow
-              key={b.categoryId}
-              category={b.category}
+              key={b.description}
+              description={b.description}
               monthKey={currentMonth}
               limitCents={b.limitCents}
               spentCents={b.spentCents}
@@ -55,16 +62,16 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {unbudgetedCategories.length > 0 && (
+      {unbudgetedRecurring.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-muted-foreground mb-1">Unbudgeted Categories</h2>
-          {unbudgetedCategories.map((cat) => (
+          <h2 className="text-sm font-medium text-muted-foreground mb-1">Recurring — No Budget Set</h2>
+          {unbudgetedRecurring.map((r) => (
             <BudgetRow
-              key={cat.id}
-              category={cat}
+              key={r.description}
+              description={r.description}
               monthKey={currentMonth}
               limitCents={null}
-              spentCents={spendingMap.get(cat.id) ?? 0}
+              spentCents={r.monthlyCostCents}
             />
           ))}
         </div>

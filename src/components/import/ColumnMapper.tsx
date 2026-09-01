@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { BANK_PRESETS, parseDate, parseAmount } from "@/lib/csv/mappings";
 import type { BankPreset } from "@/lib/csv/mappings";
-import type { Account, Category } from "@/generated/prisma/client";
+import type { Account } from "@/generated/prisma/client";
 import type { ParseResult } from "@/lib/csv/parser";
 import type { ImportRow } from "@/actions/import";
 
@@ -24,17 +24,15 @@ export interface ColumnMapping {
   creditAmountCol?: string;
   idCol?: string;
   accountId: string;
-  defaultCategoryId?: string;
 }
 
 interface ColumnMapperProps {
   parseResult: ParseResult;
   accounts: Account[];
-  categories: Category[];
   onMapped: (rows: ImportRow[], mapping: ColumnMapping) => void;
 }
 
-export function ColumnMapper({ parseResult, accounts, categories, onMapped }: ColumnMapperProps) {
+export function ColumnMapper({ parseResult, accounts, onMapped }: ColumnMapperProps) {
   const { headers, rows } = parseResult;
   const [mapping, setMapping] = useState<ColumnMapping>({
     dateCol: headers[0] ?? "",
@@ -94,7 +92,6 @@ export function ColumnMapper({ parseResult, accounts, categories, onMapped }: Co
         amountCents,
         type,
         accountId: mapping.accountId,
-        categoryId: mapping.defaultCategoryId ?? null,
         externalId: extId || null,
       };
     });
@@ -142,22 +139,6 @@ export function ColumnMapper({ parseResult, accounts, categories, onMapped }: Co
             <SelectContent>
               {accounts.map((a) => (
                 <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Default Category</Label>
-          <Select
-            value={mapping.defaultCategoryId ?? ""}
-            onValueChange={(v) => setMapping((m) => ({ ...m, defaultCategoryId: v || undefined }))}
-          >
-            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">None</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -6,7 +6,7 @@ import {
   getSpendingAccounts,
   getSpendingSummary,
   getRecurringTransactions,
-  getAnomalousCategories,
+  getAnomalousDescriptions,
 } from "@/actions/spending";
 import { formatCents } from "@/lib/money";
 import { monthKey } from "@/lib/dates";
@@ -31,7 +31,7 @@ export default async function SpendingPage({ searchParams }: PageProps) {
   const [summary, recurring, anomalies] = await Promise.all([
     getSpendingSummary(currentMonth, accountIds),
     getRecurringTransactions(currentMonth, accountIds),
-    getAnomalousCategories(currentMonth, accountIds),
+    getAnomalousDescriptions(currentMonth, accountIds),
   ]);
 
   const recurringTotal = recurring.reduce((s, r) => s + r.monthlyCostCents, 0);
@@ -64,7 +64,7 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold tabular-nums">
+                <p className="text-3xl font-bold tabular-nums text-destructive">
                   {formatCents(summary.totalExpenseCents)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -81,7 +81,7 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold tabular-nums">
+                <p className="text-3xl font-bold tabular-nums text-destructive">
                   {formatCents(recurringTotal)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -117,7 +117,7 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                         <td className="py-2 px-3 text-center text-muted-foreground">
                           {r.monthsFound} / 3
                         </td>
-                        <td className="py-2 px-6 text-right tabular-nums font-medium">
+                        <td className="py-2 px-6 text-right tabular-nums font-medium text-destructive">
                           {formatCents(r.monthlyCostCents)}
                         </td>
                       </tr>
@@ -128,7 +128,7 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                       <td className="py-2 px-6" colSpan={2}>
                         Total recurring
                       </td>
-                      <td className="py-2 px-6 text-right tabular-nums">
+                      <td className="py-2 px-6 text-right tabular-nums text-destructive">
                         {formatCents(recurringTotal)}
                       </td>
                     </tr>
@@ -151,7 +151,7 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-xs text-muted-foreground">
-                      <th className="text-left py-2 px-6 font-medium">Category</th>
+                      <th className="text-left py-2 px-6 font-medium">Description</th>
                       <th className="text-right py-2 px-3 font-medium">This Month</th>
                       <th className="text-right py-2 px-3 font-medium">3-mo Avg</th>
                       <th className="text-right py-2 px-6 font-medium">Delta</th>
@@ -159,12 +159,9 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                   </thead>
                   <tbody>
                     {anomalies.map((a) => (
-                      <tr key={a.categoryId} className="border-b last:border-0 hover:bg-muted/30">
-                        <td className="py-2 px-6">
-                          <span className="mr-2">{a.categoryIcon}</span>
-                          {a.categoryName}
-                        </td>
-                        <td className="py-2 px-3 text-right tabular-nums">
+                      <tr key={a.description} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="py-2 px-6">{a.description}</td>
+                        <td className="py-2 px-3 text-right tabular-nums text-destructive">
                           {formatCents(a.currentCents)}
                         </td>
                         <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">

@@ -7,13 +7,12 @@ import { ColumnMapper } from "./ColumnMapper";
 import { ImportPreview, ImportSuccess } from "./ImportPreview";
 import type { ParseResult } from "@/lib/csv/parser";
 import type { ImportRow } from "@/actions/import";
-import type { Account, Category } from "@/generated/prisma/client";
+import type { Account } from "@/generated/prisma/client";
 
 type Step = "upload" | "map" | "preview" | "done";
 
 interface ImportWizardProps {
   accounts: Account[];
-  categories: Category[];
   redirectTo?: string;
 }
 
@@ -24,7 +23,7 @@ const STEP_LABELS: Record<Step, string> = {
   done: "Done",
 };
 
-export function ImportWizard({ accounts, categories, redirectTo }: ImportWizardProps) {
+export function ImportWizard({ accounts, redirectTo }: ImportWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("upload");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
@@ -68,7 +67,6 @@ export function ImportWizard({ accounts, categories, redirectTo }: ImportWizardP
         <ColumnMapper
           parseResult={parseResult}
           accounts={accounts}
-          categories={categories}
           onMapped={(rows) => {
             setImportRows(rows);
             setStep("preview");
@@ -79,7 +77,6 @@ export function ImportWizard({ accounts, categories, redirectTo }: ImportWizardP
       {step === "preview" && (
         <ImportPreview
           rows={importRows}
-          categories={categories}
           onBack={() => setStep("map")}
           onComplete={(imp, skip) => {
             setImported(imp);
@@ -93,7 +90,7 @@ export function ImportWizard({ accounts, categories, redirectTo }: ImportWizardP
         <ImportSuccess
           imported={imported}
           skipped={skipped}
-          onDone={() => router.push(redirectTo ?? "/transactions")}
+          onDone={() => router.push(redirectTo ?? "/accounts")}
         />
       )}
     </div>

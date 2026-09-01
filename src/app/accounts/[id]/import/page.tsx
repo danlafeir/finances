@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
-import { getCategories } from "@/actions/categories";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import { cn } from "@/lib/utils";
 import { ChevronLeft } from "lucide-react";
@@ -14,10 +13,7 @@ export default async function AccountImportPage({
 }) {
   const { id } = await params;
 
-  const [account, categories] = await Promise.all([
-    prisma.account.findUnique({ where: { id } }),
-    getCategories(),
-  ]);
+  const account = await prisma.account.findUnique({ where: { id } });
 
   if (!account || (account.type !== "CHECKING" && account.type !== "CREDIT_CARD")) {
     notFound();
@@ -35,11 +31,7 @@ export default async function AccountImportPage({
         </Link>
         <h1 className="text-2xl font-semibold">Import Transactions</h1>
       </div>
-      <ImportWizard
-        accounts={[account]}
-        categories={categories}
-        redirectTo={`/accounts/${id}`}
-      />
+      <ImportWizard accounts={[account]} redirectTo={`/accounts/${id}`} />
     </div>
   );
 }

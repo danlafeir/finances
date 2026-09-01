@@ -26,12 +26,10 @@ export async function BudgetStatusBars() {
           const pct = Math.min(Math.round((b.spentCents / b.limitCents) * 100), 100);
           const over = b.spentCents > b.limitCents;
           return (
-            <div key={b.categoryId}>
+            <div key={b.description}>
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-medium">
-                  {b.category.icon} {b.category.name}
-                </span>
-                <span className={over ? "text-destructive" : "text-muted-foreground"}>
+                <span className="font-medium truncate mr-2">{b.description}</span>
+                <span className={`shrink-0 ${over ? "text-destructive" : "text-muted-foreground"}`}>
                   {formatCents(b.spentCents)} / {formatCents(b.limitCents)}
                 </span>
               </div>
