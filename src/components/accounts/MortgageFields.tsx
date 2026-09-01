@@ -34,14 +34,33 @@ interface Props {
 }
 
 function detectColumns(headers: string[]) {
-  const find = (...keywords: string[]) =>
-    headers.find((h) => keywords.some((k) => h.toLowerCase().includes(k)));
+  // Try keywords in priority order — first match wins.
+  const findBest = (...keywords: string[]) => {
+    for (const kw of keywords) {
+      const match = headers.find((h) => h.toLowerCase().includes(kw));
+      if (match) return match;
+    }
+    return undefined;
+  };
+
+  const dateCol = findBest("payment date", "date");
+  // Exclude the date column so "Payment Date" doesn't shadow "Payment Due".
+  const nonDate = headers.filter((h) => h !== dateCol);
+  const findNonDate = (...keywords: string[]) => {
+    for (const kw of keywords) {
+      const match = nonDate.find((h) => h.toLowerCase().includes(kw));
+      if (match) return match;
+    }
+    return undefined;
+  };
+
   return {
-    dateCol: find("date"),
-    paymentCol: find("payment", "amount", "total"),
-    principalCol: find("principal"),
-    interestCol: find("interest"),
-    balanceCol: find("balance", "remaining"),
+    dateCol,
+    paymentCol: findNonDate("payment due", "payment amount", "amount due", "payment"),
+    principalCol: findBest("principal paid", "principal"),
+    interestCol: findBest("interest due", "interest paid", "interest amount", "interest"),
+    balanceCol: findBest("balance", "remaining"),
+    numberCol: findBest("no.", "payment no", "payment #", "#"),
   };
 }
 
@@ -207,15 +226,18 @@ export function MortgageFields({ initial, onChange }: Props) {
       }
 
       const parsed: ScheduleRow[] = [];
+      let seq = 0;
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const rawDate = cols.dateCol ? row[cols.dateCol]?.trim() : "";
         if (!rawDate) continue;
         const date = new Date(rawDate);
         if (isNaN(date.getTime())) continue;
+        seq++;
+        const csvNum = cols.numberCol ? parseInt(row[cols.numberCol] ?? "") : NaN;
 
         parsed.push({
-          paymentNumber: i + 1,
+          paymentNumber: isNaN(csvNum) || csvNum <= 0 ? seq : csvNum,
           paymentDate: date.toISOString().slice(0, 10),
           paymentCents: parseCents(cols.paymentCol ? row[cols.paymentCol] : undefined),
           principalCents: parseCents(cols.principalCol ? row[cols.principalCol] : undefined),
