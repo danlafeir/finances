@@ -32,11 +32,13 @@ export default async function AccountDetailPage({
 
   const isMortgage = account.type === "MORTGAGE";
   const mortgage = isMortgage ? await getMortgageDetails(id) : null;
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
   const transactions = !isMortgage
     ? await prisma.transaction.findMany({
-        where: { accountId: id },
+        where: { accountId: id, date: { gte: sixMonthsAgo } },
         orderBy: { date: "desc" },
-        take: 50,
       })
     : [];
 

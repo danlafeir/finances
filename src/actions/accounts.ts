@@ -75,6 +75,13 @@ export async function deleteAccount(id: string) {
   revalidatePath("/dashboard");
 }
 
+export async function clearAccountTransactions(id: string) {
+  await prisma.transaction.deleteMany({ where: { accountId: id } });
+  revalidatePath(`/accounts/${id}`);
+  revalidatePath("/spending");
+  revalidatePath("/dashboard");
+}
+
 export async function getAccounts() {
   return prisma.account.findMany({
     orderBy: { createdAt: "asc" },

@@ -15,7 +15,6 @@ export const BANK_PRESETS: BankPreset[] = [
     dateColumn: "Posting Date",
     descriptionColumn: "Description",
     amountColumn: "Amount",
-    idColumn: "Details",
     dateFormat: "MM/DD/YYYY",
   },
   {
