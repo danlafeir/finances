@@ -2,15 +2,8 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCents } from "@/lib/money";
+import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
 import type { Account } from "@/generated/prisma/client";
-
-const TYPE_LABELS: Record<string, string> = {
-  CHECKING: "Checking",
-  CASH: "Cash",
-  QUALIFIED_BROKERAGE: "Qualified Brokerage",
-  TAXABLE_BROKERAGE: "Taxable Brokerage",
-  STOCK_PLAN: "Stock Plan",
-};
 
 interface AccountCardProps {
   account: Account & { balanceCents: number };
@@ -33,7 +26,7 @@ export function AccountCard({ account }: AccountCardProps) {
               )}
               <CardTitle className="text-base">{account.name}</CardTitle>
             </div>
-            <Badge variant="secondary">{TYPE_LABELS[account.type] ?? account.type}</Badge>
+            <Badge variant="secondary">{ACCOUNT_TYPE_LABEL[account.type] ?? account.type}</Badge>
           </div>
         </CardHeader>
         <CardContent>

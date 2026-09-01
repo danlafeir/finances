@@ -8,14 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { Pencil } from "lucide-react";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { cn } from "@/lib/utils";
-
-const TYPE_LABELS: Record<string, string> = {
-  CHECKING: "Checking",
-  CASH: "Cash",
-  QUALIFIED_BROKERAGE: "Qualified Brokerage",
-  TAXABLE_BROKERAGE: "Taxable Brokerage",
-  STOCK_PLAN: "Stock Plan",
-};
+import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
 
 export default async function AccountDetailPage({
   params,
@@ -47,7 +40,7 @@ export default async function AccountDetailPage({
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: account.color }} />
             )}
             <h1 className="text-2xl font-semibold">{account.name}</h1>
-            <Badge variant="secondary">{TYPE_LABELS[account.type] ?? account.type}</Badge>
+            <Badge variant="secondary">{ACCOUNT_TYPE_LABEL[account.type] ?? account.type}</Badge>
           </div>
           <p className="text-3xl font-bold tabular-nums">{formatCents(account.balanceCents)}</p>
         </div>
