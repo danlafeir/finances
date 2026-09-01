@@ -44,14 +44,46 @@ export function calcTermMonths(
   return n;
 }
 
+export interface ScheduleSummary {
+  currentBalanceCents: number;
+  nextPayment: ScheduleRow | null;
+  paidOffPercent: number;
+}
+
+export function getScheduleSummary(
+  payments: ScheduleRow[],
+  principalCents: number
+): ScheduleSummary {
+  if (payments.length === 0) {
+    return { currentBalanceCents: principalCents, nextPayment: null, paidOffPercent: 0 };
+  }
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  let currentBalanceCents = principalCents;
+  let nextPayment: ScheduleRow | null = null;
+
+  for (const p of payments) {
+    if (new Date(p.paymentDate) <= today) {
+      currentBalanceCents = p.balanceCents;
+    } else if (nextPayment === null) {
+      nextPayment = p;
+    }
+  }
+
+  const paidOffPercent =
+    principalCents > 0
+      ? Math.max(0, Math.round(((principalCents - currentBalanceCents) / principalCents) * 100))
+      : 0;
+
+  return { currentBalanceCents, nextPayment, paidOffPercent };
+}
+
+// Keep for use in MortgageData currentBalanceCents population
 export function getCurrentBalanceCents(
   payments: ScheduleRow[],
   principalCents: number
 ): number {
-  if (payments.length === 0) return principalCents;
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const past = payments.filter((p) => new Date(p.paymentDate) <= today);
-  if (past.length === 0) return principalCents;
-  return past[past.length - 1].balanceCents;
+  return getScheduleSummary(payments, principalCents).currentBalanceCents;
 }

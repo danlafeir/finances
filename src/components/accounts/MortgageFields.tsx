@@ -137,13 +137,6 @@ export function MortgageFields({ initial, onChange }: Props) {
       });
 
     if (schedule.length > 0 && principalCents > 0) {
-      const firstBalance = schedule[0].balanceCents;
-      if (Math.abs(firstBalance - principalCents) > 50000)
-        issues.push({
-          type: "warning",
-          message: `Schedule opening balance (${formatCents(firstBalance)}) doesn't match loan amount (${formatCents(principalCents)}).`,
-        });
-
       const schedPayment = schedule[0].paymentCents;
       if (effectivePaymentCents > 0 && Math.abs(effectivePaymentCents - schedPayment) > 500)
         issues.push({

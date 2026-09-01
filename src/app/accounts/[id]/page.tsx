@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
 import { getMortgageDetails } from "@/actions/mortgage";
 import { formatCents } from "@/lib/money";
-import { getCurrentBalanceCents } from "@/lib/mortgage";
+import { getScheduleSummary } from "@/lib/mortgage";
 
 export default async function AccountDetailPage({
   params,
@@ -66,12 +66,8 @@ export default async function AccountDetailPage({
           interestCents: p.interestCents,
           balanceCents: p.balanceCents,
         }));
-        const currentBalance = getCurrentBalanceCents(payments, mortgage.principalCents);
-        const equity = mortgage.homeValueCents - currentBalance;
-        const paidOff = Math.round(((mortgage.principalCents - currentBalance) / mortgage.principalCents) * 100);
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        const nextPayment = payments.find((p) => new Date(p.paymentDate) > today);
+        const { currentBalanceCents, nextPayment, paidOffPercent } = getScheduleSummary(payments, mortgage.principalCents);
+        const equity = mortgage.homeValueCents - currentBalanceCents;
         const rate = (mortgage.annualRateBps / 100).toFixed(3);
 
         return (
@@ -84,7 +80,7 @@ export default async function AccountDetailPage({
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Remaining Balance</p>
-                <p className="font-semibold tabular-nums">{formatCents(currentBalance)}</p>
+                <p className="font-semibold tabular-nums">{formatCents(currentBalanceCents)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Equity</p>
@@ -93,8 +89,10 @@ export default async function AccountDetailPage({
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Monthly Payment</p>
-                <p className="font-semibold tabular-nums">{formatCents(mortgage.monthlyPaymentCents)}</p>
+                <p className="text-muted-foreground text-xs">Next Payment Due</p>
+                <p className="font-semibold tabular-nums">
+                  {nextPayment ? formatCents(nextPayment.paymentCents) : formatCents(mortgage.monthlyPaymentCents)}
+                </p>
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Rate</p>
@@ -106,11 +104,11 @@ export default async function AccountDetailPage({
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Paid Off</p>
-                <p className="font-semibold">{paidOff}%</p>
+                <p className="font-semibold">{paidOffPercent}%</p>
               </div>
               {nextPayment && (
                 <div>
-                  <p className="text-muted-foreground text-xs">Next Payment</p>
+                  <p className="text-muted-foreground text-xs">Next Payment Date</p>
                   <p className="font-semibold">
                     {new Date(nextPayment.paymentDate).toLocaleDateString("en-US", {
                       month: "short",
@@ -124,12 +122,12 @@ export default async function AccountDetailPage({
             <div>
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>Original loan: {formatCents(mortgage.principalCents)}</span>
-                <span>{paidOff}% paid</span>
+                <span>{paidOffPercent}% paid</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${Math.min(paidOff, 100)}%` }}
+                  style={{ width: `${Math.min(paidOffPercent, 100)}%` }}
                 />
               </div>
             </div>
