@@ -83,17 +83,12 @@ export default async function AccountDetailPage({
             <Badge variant="secondary">{ACCOUNT_TYPE_LABEL[account.type] ?? account.type}</Badge>
           </div>
           <p className="text-3xl font-bold tabular-nums">{formatCents(account.balanceCents)}</p>
-          {account.snapshotDate && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Snapshot {formatCents(account.snapshotBalanceCents)} on{" "}
-              {new Date(account.snapshotDate).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-              {" "}+ transactions after
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            As of{" "}
+            {account.snapshotDate
+              ? new Date(account.snapshotDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              : new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </p>
         </div>
         <div className="flex gap-2">
           <Link
@@ -109,7 +104,12 @@ export default async function AccountDetailPage({
 
       {mortgage && (
         <div className="mb-6 border rounded-lg p-4 space-y-4">
-          <h2 className="text-sm font-medium text-muted-foreground">Mortgage Summary</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground">Mortgage Summary</h2>
+            <p className="text-xs text-muted-foreground">
+              As of {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </p>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground text-xs">Home Value</p>
