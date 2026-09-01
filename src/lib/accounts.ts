@@ -6,6 +6,8 @@ export const ACCOUNT_TYPES = [
   { value: "QUALIFIED_BROKERAGE", label: "Qualified Brokerage" },
   { value: "TAXABLE_BROKERAGE", label: "Taxable Brokerage" },
   { value: "STOCK_PLAN", label: "Stock Plan" },
+  { value: "COLLEGE_SAVINGS", label: "529 College Savings" },
+  { value: "HSA", label: "HSA" },
 ] as const;
 
 export const BROKERS = [
@@ -30,6 +32,8 @@ export const ACCOUNT_TYPE_COLOR: Record<string, string> = {
   QUALIFIED_BROKERAGE: "#7c5cbf",
   TAXABLE_BROKERAGE: "#a855a0",
   STOCK_PLAN: "#e07b3a",
+  COLLEGE_SAVINGS: "#2196a8",
+  HSA: "#43a87a",
 };
 
 export const LIABILITY_TYPES = new Set(["CREDIT_CARD", "MORTGAGE"]);
