@@ -11,13 +11,15 @@ export const ACCOUNT_TYPES = [
 ] as const;
 
 export const BROKERS = [
+  "Ally",
   "Betterment",
-  "Vanguard",
-  "Fidelity",
+  "Bright Start 529 Plan",
   "Charles Schwab",
   "E*Trade",
-  "Ally",
+  "Fidelity",
+  "Morgan Stanley",
   "Northwestern Mutual",
+  "Vanguard",
 ] as const;
 
 export const ACCOUNT_TYPE_LABEL: Record<string, string> = Object.fromEntries(
