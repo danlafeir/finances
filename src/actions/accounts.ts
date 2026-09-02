@@ -22,6 +22,9 @@ const AccountSchema = z.object({
   color: z.string().optional(),
   currency: z.string().default("USD"),
   vestingEvents: z.array(VestingEventInput).optional(),
+  interestRateBps: z.number().int().optional().nullable(),
+  contributionCents: z.number().int().optional().nullable(),
+  contributionFrequency: z.string().optional().nullable(),
 });
 
 function signedSum(transactions: { type: string; amountCents: number }[]) {

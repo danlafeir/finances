@@ -54,6 +54,11 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
 
   const isStockPlan = accountType === "STOCK_PLAN";
   const isMortgage = accountType === "MORTGAGE";
+  const isHYS = accountType === "CASH";
+  const is529 = accountType === "COLLEGE_SAVINGS";
+  const isHSA = accountType === "HSA";
+  const isQualBrokerage = accountType === "QUALIFIED_BROKERAGE";
+  const isTaxBrokerage = accountType === "TAXABLE_BROKERAGE";
   const isEdit = !!account;
 
   // Pre-fetch price when editing an existing stock plan account
@@ -109,6 +114,9 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
     const broker = fd.get("broker") as string;
     const balanceStr = fd.get("snapshotBalance") as string;
     const snapshotDateStr = fd.get("snapshotDate") as string;
+    const interestRateStr = fd.get("interestRate") as string;
+    const contributionStr = fd.get("contributionAmount") as string;
+    const contributionFreq = fd.get("contributionFrequency") as string;
 
     try {
       const snapshotBalanceCents = isMortgage
@@ -121,6 +129,18 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
             .map((e) => ({ date: e.date, shares: parseFloat(e.shares) }))
         : [];
 
+      const interestRateBps = isHYS && interestRateStr
+        ? Math.round(parseFloat(interestRateStr) * 100)
+        : null;
+      const contributionCents = (is529 || isTaxBrokerage || isHSA || isQualBrokerage) && contributionStr
+        ? parseDollarsToCents(contributionStr)
+        : null;
+      const contributionFrequency = (is529 || isTaxBrokerage) && contributionFreq
+        ? contributionFreq
+        : (isHSA || isQualBrokerage) && contributionCents !== null
+        ? "annually"
+        : null;
+
       const data = {
         name,
         type: accountType as Parameters<typeof createAccount>[0]["type"],
@@ -132,6 +152,9 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
         color: ACCOUNT_TYPE_COLOR[accountType],
         currency: "USD",
         vestingEvents: vestingEventsData,
+        interestRateBps,
+        contributionCents,
+        contributionFrequency,
       };
 
       let accountId: string;
@@ -271,6 +294,81 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
               />
             </div>
           )}
+        </div>
+      )}
+
+      {isHYS && (
+        <div className="space-y-1.5">
+          <Label htmlFor="interestRate">Interest Rate (APY %)</Label>
+          <Input
+            id="interestRate"
+            name="interestRate"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 4.50"
+            defaultValue={
+              account?.interestRateBps != null
+                ? (account.interestRateBps / 100).toFixed(2)
+                : ""
+            }
+          />
+        </div>
+      )}
+
+      {(is529 || isTaxBrokerage) && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="contributionAmount">
+              Contribution{isTaxBrokerage ? " (optional)" : ""}
+            </Label>
+            <Input
+              id="contributionAmount"
+              name="contributionAmount"
+              type="text"
+              inputMode="decimal"
+              placeholder="0.00"
+              defaultValue={
+                account?.contributionCents != null
+                  ? centsToDisplay(account.contributionCents)
+                  : ""
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contributionFrequency">Frequency</Label>
+            <Select
+              name="contributionFrequency"
+              defaultValue={account?.contributionFrequency ?? "monthly"}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select frequency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="annually">Annually</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {(isHSA || isQualBrokerage) && (
+        <div className="space-y-1.5">
+          <Label htmlFor="contributionAmount">Annual Contribution</Label>
+          <Input
+            id="contributionAmount"
+            name="contributionAmount"
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            defaultValue={
+              account?.contributionCents != null
+                ? centsToDisplay(account.contributionCents)
+                : ""
+            }
+          />
         </div>
       )}
 

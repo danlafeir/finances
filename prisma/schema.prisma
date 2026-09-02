@@ -39,6 +39,9 @@ model Account {
   isLiability          Boolean     @default(false)
   snapshotBalanceCents Int         @default(0)
   snapshotDate         DateTime?
+  interestRateBps      Int?
+  contributionCents    Int?
+  contributionFrequency String?
   currency             String      @default("USD")
   color               String?
   plaidItemId         String?
