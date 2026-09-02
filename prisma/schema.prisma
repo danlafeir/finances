@@ -36,6 +36,15 @@ enum TaxFormType {
   FORM_1098
 }
 
+enum VendorTag {
+  BILL
+  SUBSCRIPTION
+  MEMBERSHIP
+  INSURANCE
+  UTILITY
+  OTHER
+}
+
 model Account {
   id                  String      @id @default(cuid())
   name                String
@@ -166,6 +175,15 @@ model TaxRecord {
   @@unique([taxYear, formType, accountId, payerName])
   @@index([taxYear])
   @@index([accountId])
+}
+
+model VendorLabel {
+  id          String    @id @default(cuid())
+  description String    @unique
+  label       String
+  tag         VendorTag @default(OTHER)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model PriceSnapshot {
