@@ -22,7 +22,12 @@ export function AccountCard({ account }: AccountCardProps) {
                   style={{ backgroundColor: account.color }}
                 />
               )}
-              <CardTitle className="text-base">{account.name}</CardTitle>
+              <div>
+                <CardTitle className="text-base">{account.name}</CardTitle>
+                {account.broker && (
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">{account.broker}</p>
+                )}
+              </div>
             </div>
             <Badge
               variant="secondary"
