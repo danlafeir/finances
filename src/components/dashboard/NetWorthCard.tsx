@@ -1,26 +1,31 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllAccountsWithBalances } from "@/actions/accounts";
 import { getPortfolio } from "@/actions/holdings";
+import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/money";
 import { OFF_BALANCE_SHEET_TYPES } from "@/lib/accounts";
 import { AlertCircle } from "lucide-react";
 
 export async function NetWorthCard() {
-  const [accounts, { holdings, totalValueCents, hasStale }] = await Promise.all([
+  const [accounts, { holdings, totalValueCents, hasStale }, mortgages] = await Promise.all([
     getAllAccountsWithBalances(),
     getPortfolio(),
+    prisma.mortgageDetails.findMany({ select: { homeValueCents: true } }),
   ]);
 
   const cashAssets = accounts
     .filter((a) => !a.isLiability && !OFF_BALANCE_SHEET_TYPES.has(a.type))
     .reduce((s, a) => s + a.balanceCents, 0);
 
+  const homeValue = mortgages.reduce((s, m) => s + m.homeValueCents, 0);
+
   const liabilities = accounts
     .filter((a) => a.isLiability)
     .reduce((s, a) => s + a.balanceCents, 0);
 
   const investmentValue = totalValueCents;
-  const netWorth = cashAssets + investmentValue - Math.abs(liabilities);
+  const assets = cashAssets + homeValue;
+  const netWorth = assets + investmentValue - Math.abs(liabilities);
 
   return (
     <Card>
@@ -31,8 +36,8 @@ export async function NetWorthCard() {
         <p className="text-4xl font-bold tabular-nums">{formatCents(netWorth)}</p>
         <div className="mt-3 space-y-1 text-sm">
           <div className="flex justify-between text-muted-foreground">
-            <span>Cash & savings</span>
-            <span className="tabular-nums">{formatCents(cashAssets)}</span>
+            <span>Assets</span>
+            <span className="tabular-nums">{formatCents(assets)}</span>
           </div>
           {holdings.length > 0 && (
             <div className="flex justify-between text-muted-foreground">
