@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { TaxRecordInput } from "@/lib/schemas";
+import { TaxRecordInput, TaxReturnSummaryInput } from "@/lib/schemas";
 import { TAX_FORM_ELIGIBLE_ACCOUNT_TYPES } from "@/lib/tax/forms";
 import type { TaxFormType } from "@/generated/prisma/enums";
 import { z } from "zod";
@@ -124,12 +124,12 @@ export async function getTaxRecords(taxYear: number) {
 }
 
 export async function getTaxYearsWithData() {
-  const rows = await prisma.taxRecord.findMany({
-    distinct: ["taxYear"],
-    select: { taxYear: true },
-    orderBy: { taxYear: "desc" },
-  });
-  return rows.map((r) => r.taxYear);
+  const [recordYears, returnYears] = await Promise.all([
+    prisma.taxRecord.findMany({ distinct: ["taxYear"], select: { taxYear: true } }),
+    prisma.taxReturnSummary.findMany({ distinct: ["taxYear"], select: { taxYear: true } }),
+  ]);
+  const years = new Set([...recordYears.map((r) => r.taxYear), ...returnYears.map((r) => r.taxYear)]);
+  return Array.from(years).sort((a, b) => b - a);
 }
 
 export async function getTaxSummary(taxYear: number) {
@@ -169,4 +169,72 @@ export async function getTaxRecordsForAccount(accountId: string) {
 
 export async function getTaxRecord(id: string) {
   return prisma.taxRecord.findUniqueOrThrow({ where: { id } });
+}
+
+export async function upsertTaxReturnSummary(data: TaxReturnSummaryInput) {
+  const parsed = TaxReturnSummaryInput.parse(data);
+  const result = await prisma.taxReturnSummary.upsert({
+    where: { taxYear: parsed.taxYear },
+    create: parsed,
+    update: parsed,
+  });
+
+  revalidatePath("/tax");
+  revalidatePath(`/tax/return`);
+
+  return result;
+}
+
+export async function getTaxReturnSummary(taxYear: number) {
+  return prisma.taxReturnSummary.findUnique({ where: { taxYear } });
+}
+
+export async function deleteTaxReturnSummary(taxYear: number) {
+  await prisma.taxReturnSummary.delete({ where: { taxYear } });
+  revalidatePath("/tax");
+  revalidatePath(`/tax/return`);
+}
+
+export interface TaxReconciliationRow {
+  label: string;
+  reportedCents: number | null;
+  trackedCents: number;
+  status: "no-return-data" | "coverage" | "exceeds";
+}
+
+// Reported figures are household totals from the filed return; tracked figures only
+// cover accounts entered in this app. A gap is expected (untracked accounts, de
+// minimis interest with no 1099, etc.) — only "tracked exceeds reported" is a real
+// anomaly, since you can't legitimately have more reported to you than the return
+// declared.
+const RECONCILIATION_TOLERANCE_CENTS = 100;
+
+function reconcileRow(label: string, reportedCents: number | null, trackedCents: number): TaxReconciliationRow {
+  if (reportedCents == null) {
+    return { label, reportedCents: null, trackedCents, status: "no-return-data" };
+  }
+  const status: TaxReconciliationRow["status"] =
+    trackedCents > reportedCents + RECONCILIATION_TOLERANCE_CENTS ? "exceeds" : "coverage";
+  return { label, reportedCents, trackedCents, status };
+}
+
+export async function getTaxReconciliation(taxYear: number) {
+  const [returnSummary, tracked] = await Promise.all([
+    getTaxReturnSummary(taxYear),
+    getTaxSummary(taxYear),
+  ]);
+
+  if (!returnSummary) return null;
+
+  const rows: TaxReconciliationRow[] = [
+    reconcileRow("Taxable Interest", returnSummary.taxableInterestCents, tracked.interestIncomeCents),
+    reconcileRow("Ordinary Dividends", returnSummary.ordinaryDividendsCents, tracked.ordinaryDividendsCents),
+    reconcileRow(
+      "Mortgage Interest Deduction",
+      returnSummary.mortgageInterestDeductionCents,
+      tracked.mortgageInterestPaidCents
+    ),
+  ];
+
+  return { returnSummary, rows };
 }
