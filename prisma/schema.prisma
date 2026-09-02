@@ -177,6 +177,32 @@ model TaxRecord {
   @@index([accountId])
 }
 
+model TaxReturnSummary {
+  id      String @id @default(cuid())
+  taxYear Int    @unique
+
+  filingStatus String?
+  agiCents           Int // Form 1040 line 11
+  taxableIncomeCents Int // line 15
+  totalTaxCents      Int // line 24
+  totalPaymentsCents Int? // line 33
+  refundCents        Int? // line 34
+  amountOwedCents    Int? // line 37
+
+  taxableInterestCents    Int? // line 2b
+  ordinaryDividendsCents  Int? // line 3b
+  qualifiedDividendsCents Int? // line 3a
+  capitalGainCents        Int? // line 7, signed; informational only — reflects the
+  // $3,000 capital-loss limitation and Schedule D adjustments, not directly
+  // comparable to TaxRecord's short/long-term gain splits
+
+  mortgageInterestDeductionCents Int? // Schedule A, if itemized; null if standard deduction was used
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model VendorLabel {
   id          String    @id @default(cuid())
   description String    @unique
