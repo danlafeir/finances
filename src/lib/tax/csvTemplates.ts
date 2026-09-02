@@ -7,10 +7,13 @@ export interface TaxCsvFieldMapping {
   required?: boolean;
 }
 
-export interface TaxCsvTemplate {
+export interface TaxPromptTemplate {
   headers: string[];
   exampleRow: string[];
   promptText: string;
+}
+
+export interface TaxCsvTemplate extends TaxPromptTemplate {
   fields: TaxCsvFieldMapping[];
 }
 

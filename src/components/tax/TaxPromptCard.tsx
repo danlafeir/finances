@@ -3,16 +3,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
-import { TAX_CSV_TEMPLATES } from "@/lib/tax/csvTemplates";
-import type { TaxFormType } from "@/generated/prisma/enums";
+import type { TaxPromptTemplate } from "@/lib/tax/csvTemplates";
 
 interface TaxPromptCardProps {
-  formType: TaxFormType;
+  template: TaxPromptTemplate;
 }
 
-export function TaxPromptCard({ formType }: TaxPromptCardProps) {
+export function TaxPromptCard({ template }: TaxPromptCardProps) {
   const [copied, setCopied] = useState(false);
-  const template = TAX_CSV_TEMPLATES[formType];
 
   async function handleCopy() {
     await navigator.clipboard.writeText(template.promptText);

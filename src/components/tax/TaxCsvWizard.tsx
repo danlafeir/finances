@@ -17,6 +17,7 @@ import { TaxCsvUploader } from "@/components/tax/TaxCsvUploader";
 import { TaxCsvPreview } from "@/components/tax/TaxCsvPreview";
 import { TaxCsvSuccess } from "@/components/tax/TaxCsvSuccess";
 import { TAX_FORM_TYPES } from "@/lib/tax/forms";
+import { TAX_CSV_TEMPLATES } from "@/lib/tax/csvTemplates";
 import { missingTaxCsvHeaders, parseTaxCsvRows, type TaxCsvDraftRow } from "@/lib/tax/csv";
 import type { ParseResult } from "@/lib/csv/parser";
 import type { Account } from "@/generated/prisma/client";
@@ -85,7 +86,7 @@ export function TaxCsvWizard({ accounts, defaultFormType }: TaxCsvWizardProps) {
             </div>
           </div>
 
-          <TaxPromptCard formType={formType} />
+          <TaxPromptCard template={TAX_CSV_TEMPLATES[formType]} />
 
           <Button onClick={() => setStep("upload")}>Continue →</Button>
         </div>
