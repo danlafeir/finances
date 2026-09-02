@@ -5,7 +5,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TaxYearPicker } from "@/components/tax/TaxYearPicker";
 import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
-import { getTaxYearsWithData, getTaxSummary, getTaxRecords, getTaxReconciliation } from "@/actions/tax";
+import {
+  getTaxYearsWithData,
+  getTaxRecords,
+  getTaxReconciliation,
+  getTaxOverview,
+} from "@/actions/tax";
 import { formatCents } from "@/lib/money";
 import { TAX_FORM_LABEL } from "@/lib/tax/forms";
 import { Pencil, AlertTriangle } from "lucide-react";
@@ -42,10 +47,10 @@ export default async function TaxPage({ searchParams }: PageProps) {
   const years = await getTaxYearsWithData();
   const currentYear = sp.year ? parseInt(sp.year, 10) : years[0] ?? new Date().getFullYear() - 1;
 
-  const [summary, records, reconciliation] = await Promise.all([
-    getTaxSummary(currentYear),
+  const [records, reconciliation, overview] = await Promise.all([
     getTaxRecords(currentYear),
     getTaxReconciliation(currentYear),
+    getTaxOverview(currentYear),
   ]);
 
   const effectiveRate =
@@ -56,15 +61,10 @@ export default async function TaxPage({ searchParams }: PageProps) {
         ).toFixed(1)}%`
       : null;
 
-  const ordinaryIncomeCents =
-    summary.interestIncomeCents +
-    (summary.ordinaryDividendsCents - summary.qualifiedDividendsCents) +
-    summary.shortTermCapitalGainCents;
-
-  const preferentialIncomeCents =
-    summary.qualifiedDividendsCents +
-    summary.capitalGainDistributionsCents +
-    summary.longTermCapitalGainCents;
+  const untrackedGainsCents =
+    overview.hasReturn && overview.trackedCapitalGainsCents === 0 && overview.returnCapitalGainCents
+      ? overview.returnCapitalGainCents
+      : null;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -89,10 +89,18 @@ export default async function TaxPage({ searchParams }: PageProps) {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold tabular-nums">
-              {formatCents(ordinaryIncomeCents)}
+              {formatCents(overview.ordinaryIncomeCents)}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Interest, non-qualified dividends, and short-term gains — taxed at your marginal rate
+              Interest, non-qualified dividends, and tracked short-term gains — taxed at your
+              marginal rate
+              {untrackedGainsCents != null && (
+                <>
+                  {" "}
+                  (excludes {formatCents(untrackedGainsCents)} in capital gains from your filed
+                  return — see below)
+                </>
+              )}
             </p>
           </CardContent>
         </Card>
@@ -105,10 +113,10 @@ export default async function TaxPage({ searchParams }: PageProps) {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold tabular-nums">
-              {formatCents(preferentialIncomeCents)}
+              {formatCents(overview.preferentialIncomeCents)}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Qualified dividends and long-term gains — taxed at capital gains rates
+              Qualified dividends and tracked long-term gains — taxed at capital gains rates
             </p>
           </CardContent>
         </Card>
@@ -121,23 +129,29 @@ export default async function TaxPage({ searchParams }: PageProps) {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold tabular-nums">
-              {formatCents(summary.mortgageInterestPaidCents)}
+              {formatCents(overview.mortgageInterestPaidCents)}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">Deductible if you itemize</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {overview.mortgageInterestPaidCents === 0
+                ? "No Form 1098 tracked for this year yet"
+                : "From tracked Form 1098 records"}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base text-muted-foreground font-normal">
-              Federal Tax Withheld
+              {overview.hasReturn ? "Total Payments" : "Federal Tax Withheld"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold tabular-nums">
-              {formatCents(summary.federalTaxWithheldCents)}
+            <p className="text-3xl font-bold tabular-nums">{formatCents(overview.paymentsCents)}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {overview.hasReturn
+                ? "Withholding plus estimated payments, from your filed return"
+                : "Already paid, from 1099 withholding"}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">Already paid, from 1099 withholding</p>
           </CardContent>
         </Card>
       </div>

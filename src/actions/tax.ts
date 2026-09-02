@@ -160,6 +160,48 @@ export async function getTaxSummary(taxYear: number) {
   };
 }
 
+// Powers the /tax page's top-level summary cards. Blends TaxRecord (per-account
+// documents) with TaxReturnSummary (the filed return) — but per-field, not
+// per-source, since a filed return's household totals already include every
+// income source, tracked or not: reaching into tracked sums to fill a blank field
+// on an existing return risks double-counting an account that's both tracked and
+// already folded into the return's total.
+export async function getTaxOverview(taxYear: number) {
+  const [tracked, returnSummary] = await Promise.all([
+    getTaxSummary(taxYear),
+    getTaxReturnSummary(taxYear),
+  ]);
+
+  const hasReturn = !!returnSummary;
+
+  const taxableInterestCents = hasReturn ? returnSummary!.taxableInterestCents ?? 0 : tracked.interestIncomeCents;
+  const ordinaryDividendsCents = hasReturn
+    ? returnSummary!.ordinaryDividendsCents ?? 0
+    : tracked.ordinaryDividendsCents;
+  const qualifiedDividendsCents = hasReturn
+    ? returnSummary!.qualifiedDividendsCents ?? 0
+    : tracked.qualifiedDividendsCents;
+
+  // Capital gains can only be split into short-term (ordinary-rate) vs long-term
+  // (preferential-rate) using per-account TaxRecord data (1099-B) — a filed return
+  // only carries one net, post-$3,000-loss-limitation figure (Line 7), which is
+  // exposed separately as returnCapitalGainCents rather than guessed into either
+  // bucket here. Tracked gains are included whenever present, whether or not a
+  // return also exists, since that per-document detail remains valid either way.
+  return {
+    hasReturn,
+    ordinaryIncomeCents:
+      taxableInterestCents + (ordinaryDividendsCents - qualifiedDividendsCents) + tracked.shortTermCapitalGainCents,
+    preferentialIncomeCents:
+      qualifiedDividendsCents + tracked.capitalGainDistributionsCents + tracked.longTermCapitalGainCents,
+    mortgageInterestPaidCents: tracked.mortgageInterestPaidCents,
+    paymentsCents: hasReturn ? returnSummary!.totalPaymentsCents ?? 0 : tracked.federalTaxWithheldCents,
+    trackedCapitalGainsCents:
+      tracked.shortTermCapitalGainCents + tracked.longTermCapitalGainCents + tracked.capitalGainDistributionsCents,
+    returnCapitalGainCents: returnSummary?.capitalGainCents ?? null,
+  };
+}
+
 export async function getTaxRecordsForAccount(accountId: string) {
   return prisma.taxRecord.findMany({
     where: { accountId },
