@@ -30,6 +30,12 @@ enum TransactionSource {
   PLAID
 }
 
+enum TaxFormType {
+  FORM_1099_INT
+  FORM_1099_DIV_B
+  FORM_1098
+}
+
 model Account {
   id                  String      @id @default(cuid())
   name                String
@@ -52,6 +58,7 @@ model Account {
   holdings            Holding[]
   vestingEvents       VestingEvent[]
   mortgageDetails     MortgageDetails?
+  taxRecords          TaxRecord[]
 }
 
 model MortgageDetails {
@@ -131,6 +138,34 @@ model Holding {
 
   @@unique([accountId, ticker])
   @@index([ticker])
+}
+
+model TaxRecord {
+  id        String      @id @default(cuid())
+  taxYear   Int
+  formType  TaxFormType
+  payerName String
+
+  accountId String?
+  account   Account?    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  interestIncomeCents           Int? // 1099-INT box 1
+  ordinaryDividendsCents        Int? // 1099-DIV box 1a (includes qualified dividends as a subset)
+  qualifiedDividendsCents       Int? // 1099-DIV box 1b
+  capitalGainDistributionsCents Int? // 1099-DIV box 2a (always long-term by definition)
+  shortTermCapitalGainCents     Int? // 1099-B aggregate short-term gain/loss, signed
+  longTermCapitalGainCents      Int? // 1099-B aggregate long-term gain/loss, signed
+  mortgageInterestPaidCents     Int? // 1098 box 1
+  outstandingPrincipalCents     Int? // 1098 box 2
+  federalTaxWithheldCents       Int? // 1099-INT box 4 / 1099-DIV box 4
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([taxYear, formType, accountId, payerName])
+  @@index([taxYear])
+  @@index([accountId])
 }
 
 model PriceSnapshot {
