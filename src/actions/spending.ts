@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { monthKey, monthRange, prevMonthKey } from "@/lib/dates";
+import { monthKey, monthKeyShortLabel, monthRange, prevMonthKey, shiftMonthKeyYears } from "@/lib/dates";
 
 export async function getSpendingAccounts() {
   return prisma.account.findMany({
@@ -36,6 +36,7 @@ export interface RecurringItem {
   description: string;
   monthlyCostCents: number;
   monthsFound: number;
+  lastDate: Date;
 }
 
 export async function getRecurringTransactions(
@@ -58,12 +59,12 @@ export async function getRecurringTransactions(
     orderBy: { date: "desc" },
   });
 
-  const byDesc = new Map<string, { monthKeys: Set<string>; latestCents: number }>();
+  const byDesc = new Map<string, { monthKeys: Set<string>; latestCents: number; latestDate: Date }>();
   for (const row of rows) {
     const key = row.description.trim();
     const mk_ = monthKey(row.date);
     if (!byDesc.has(key)) {
-      byDesc.set(key, { monthKeys: new Set(), latestCents: row.amountCents });
+      byDesc.set(key, { monthKeys: new Set(), latestCents: row.amountCents, latestDate: row.date });
     }
     byDesc.get(key)!.monthKeys.add(mk_);
   }
@@ -74,8 +75,113 @@ export async function getRecurringTransactions(
       description,
       monthlyCostCents: v.latestCents,
       monthsFound: v.monthKeys.size,
+      lastDate: v.latestDate,
     }))
     .sort((a, b) => b.monthlyCostCents - a.monthlyCostCents);
+}
+
+export interface AnnualRecurringItem {
+  description: string;
+  amountCents: number;
+  lastDate: Date;
+  yearsFound: number;
+}
+
+export async function getAnnualRecurringTransactions(
+  mk: string,
+  accountIds: string[]
+): Promise<AnnualRecurringItem[]> {
+  if (accountIds.length === 0) return [];
+  const windowStart = monthRange(shiftMonthKeyYears(mk, -2)).start;
+  const windowEnd = monthRange(mk).end;
+
+  const rows = await prisma.transaction.findMany({
+    where: {
+      accountId: { in: accountIds },
+      type: "EXPENSE",
+      transferPairId: null,
+      date: { gte: windowStart, lte: windowEnd },
+    },
+    select: { description: true, amountCents: true, date: true },
+    orderBy: { date: "desc" },
+  });
+
+  interface MonthOfYearStats {
+    years: Set<string>;
+    latestDate: Date;
+    latestCents: number;
+  }
+  const byDesc = new Map<string, { byMonthOfYear: Map<string, MonthOfYearStats>; allMonths: Set<string> }>();
+
+  for (const row of rows) {
+    const key = row.description.trim();
+    const rowMonthKey = monthKey(row.date);
+    const monthOfYear = rowMonthKey.slice(5);
+    const year = rowMonthKey.slice(0, 4);
+
+    if (!byDesc.has(key)) {
+      byDesc.set(key, { byMonthOfYear: new Map(), allMonths: new Set() });
+    }
+    const entry = byDesc.get(key)!;
+    entry.allMonths.add(rowMonthKey);
+
+    if (!entry.byMonthOfYear.has(monthOfYear)) {
+      entry.byMonthOfYear.set(monthOfYear, { years: new Set(), latestDate: row.date, latestCents: row.amountCents });
+    }
+    entry.byMonthOfYear.get(monthOfYear)!.years.add(year);
+  }
+
+  const results: AnnualRecurringItem[] = [];
+  for (const [description, entry] of byDesc.entries()) {
+    let best: MonthOfYearStats | null = null;
+    for (const stats of entry.byMonthOfYear.values()) {
+      if (!best || stats.years.size > best.years.size) best = stats;
+    }
+    if (!best || best.years.size < 2) continue;
+    if (entry.allMonths.size > best.years.size + 1) continue; // too many distinct months to be an annual charge
+    results.push({
+      description,
+      amountCents: best.latestCents,
+      lastDate: best.latestDate,
+      yearsFound: best.years.size,
+    });
+  }
+
+  return results.sort((a, b) => b.amountCents - a.amountCents);
+}
+
+export interface MonthlyTotal {
+  monthKey: string;
+  label: string;
+  totalCents: number;
+}
+
+export async function getMonthlySpendingTrend(
+  mk: string,
+  accountIds: string[]
+): Promise<MonthlyTotal[]> {
+  if (accountIds.length === 0) return [];
+  const keys: string[] = [];
+  let cursor = mk;
+  for (let i = 0; i < 6; i++) {
+    keys.unshift(cursor);
+    cursor = prevMonthKey(cursor);
+  }
+
+  const isCurrentMonth = mk === monthKey(new Date());
+
+  return Promise.all(
+    keys.map(async (k, i) => {
+      const { start, end } = monthRange(k);
+      const result = await prisma.transaction.aggregate({
+        _sum: { amountCents: true },
+        where: { accountId: { in: accountIds }, type: "EXPENSE", transferPairId: null, date: { gte: start, lte: end } },
+      });
+      const isLast = i === keys.length - 1;
+      const label = monthKeyShortLabel(k) + (isLast && isCurrentMonth ? " (MTD)" : "");
+      return { monthKey: k, label, totalCents: result._sum.amountCents ?? 0 };
+    })
+  );
 }
 
 export interface AnomalyItem {

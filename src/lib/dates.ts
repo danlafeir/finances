@@ -31,3 +31,14 @@ export function monthRange(key: string): { start: Date; end: Date } {
   const end = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
   return { start, end };
 }
+
+export function shiftMonthKeyYears(key: string, years: number): string {
+  const d = parseMonthKey(key);
+  d.setFullYear(d.getFullYear() + years);
+  return monthKey(d);
+}
+
+export function monthKeyShortLabel(key: string): string {
+  const d = parseMonthKey(key);
+  return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+}
