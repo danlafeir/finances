@@ -15,6 +15,7 @@ export const BROKERS = [
   "Betterment",
   "Bright Start 529 Plan",
   "Charles Schwab",
+  "Chase",
   "E*Trade",
   "Fidelity",
   "Morgan Stanley",
