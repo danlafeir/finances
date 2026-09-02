@@ -9,6 +9,7 @@ import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
 import { getMortgageDetails } from "@/actions/mortgage";
+import { lookupTickerPrice } from "@/actions/accounts";
 import { formatCents } from "@/lib/money";
 import {
   getScheduleSummary,
@@ -31,7 +32,28 @@ export default async function AccountDetailPage({
   }
 
   const isMortgage = account.type === "MORTGAGE";
+  const isStockPlan = account.type === "STOCK_PLAN";
   const mortgage = isMortgage ? await getMortgageDetails(id) : null;
+
+  const vestingEvents = isStockPlan
+    ? await prisma.vestingEvent.findMany({
+        where: { accountId: id },
+        orderBy: { date: "asc" },
+      })
+    : [];
+  const stockPriceCents = isStockPlan && account.ticker
+    ? await lookupTickerPrice(account.ticker)
+    : null;
+
+  const now = new Date();
+  const futureVestingEvents = vestingEvents.filter((e) => new Date(e.date) > now);
+  const nextVest = futureVestingEvents[0] ?? null;
+  const nextVestValueCents = nextVest && stockPriceCents
+    ? Math.round(nextVest.shares * stockPriceCents)
+    : null;
+  const totalFutureVestValueCents = stockPriceCents
+    ? futureVestingEvents.reduce((sum, e) => sum + Math.round(e.shares * stockPriceCents), 0)
+    : null;
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
@@ -101,6 +123,42 @@ export default async function AccountDetailPage({
           <DeleteAccountButton id={id} name={account.name} />
         </div>
       </div>
+
+      {isStockPlan && (
+        <div className="mb-6 border rounded-lg p-4 space-y-4">
+          <h2 className="text-sm font-medium text-muted-foreground">Vesting Schedule</h2>
+          {nextVest ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Next Vesting Event</p>
+                <p className="text-lg font-semibold">
+                  {new Date(nextVest.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  {" — "}
+                  {nextVest.shares.toLocaleString(undefined, { maximumFractionDigits: 4 })} shares
+                </p>
+                {nextVestValueCents !== null && (
+                  <p className="text-2xl font-bold tabular-nums text-amber-500">
+                    {formatCents(nextVestValueCents)}
+                  </p>
+                )}
+                {stockPriceCents && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    at {formatCents(stockPriceCents)}/share ({account.ticker})
+                  </p>
+                )}
+              </div>
+              {totalFutureVestValueCents !== null && futureVestingEvents.length > 1 && (
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  Total possible vesting ({futureVestingEvents.length} events):{" "}
+                  <span className="font-medium">{formatCents(totalFutureVestValueCents)}</span>
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No future vesting events.</p>
+          )}
+        </div>
+      )}
 
       {mortgage && (
         <div className="mb-6 border rounded-lg p-4 space-y-4">

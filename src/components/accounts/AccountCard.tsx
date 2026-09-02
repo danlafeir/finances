@@ -26,7 +26,13 @@ export function AccountCard({ account }: AccountCardProps) {
             </div>
             <Badge
               variant="secondary"
-              className={account.isLiability ? "text-destructive" : "text-emerald-600"}
+              className={
+                account.type === "STOCK_PLAN"
+                  ? "text-amber-500"
+                  : account.isLiability
+                  ? "text-destructive"
+                  : "text-emerald-600"
+              }
             >
               {ACCOUNT_TYPE_LABEL[account.type] ?? account.type}
             </Badge>
