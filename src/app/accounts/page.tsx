@@ -30,9 +30,14 @@ export default async function AccountsPage() {
         <div className="space-y-8">
           {grouped.map((group) => (
             <section key={group.label}>
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
-                {group.label}
-              </h2>
+              <div className="mb-3">
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                  {group.label}
+                </h2>
+                {group.subtitle && (
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">{group.subtitle}</p>
+                )}
+              </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {group.accounts.map((account) => (
                   <AccountCard key={account.id} account={account} />

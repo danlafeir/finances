@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllAccountsWithBalances } from "@/actions/accounts";
 import { getPortfolio } from "@/actions/holdings";
 import { formatCents } from "@/lib/money";
+import { OFF_BALANCE_SHEET_TYPES } from "@/lib/accounts";
 import { AlertCircle } from "lucide-react";
 
 export async function NetWorthCard() {
@@ -11,7 +12,7 @@ export async function NetWorthCard() {
   ]);
 
   const cashAssets = accounts
-    .filter((a) => !a.isLiability)
+    .filter((a) => !a.isLiability && !OFF_BALANCE_SHEET_TYPES.has(a.type))
     .reduce((s, a) => s + a.balanceCents, 0);
 
   const liabilities = accounts

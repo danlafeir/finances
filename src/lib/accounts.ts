@@ -38,9 +38,15 @@ export const ACCOUNT_TYPE_COLOR: Record<string, string> = {
 
 export const LIABILITY_TYPES = new Set(["CREDIT_CARD", "MORTGAGE"]);
 
-export const ACCOUNT_GROUPS: { label: string; types: string[] }[] = [
+export const OFF_BALANCE_SHEET_TYPES = new Set(["COLLEGE_SAVINGS", "STOCK_PLAN"]);
+
+export const ACCOUNT_GROUPS: { label: string; subtitle?: string; types: string[] }[] = [
   { label: "Assets", types: ["CHECKING", "CASH", "HSA", "QUALIFIED_BROKERAGE", "TAXABLE_BROKERAGE"] },
-  { label: "Restricted Assets", types: ["COLLEGE_SAVINGS", "STOCK_PLAN"] },
+  {
+    label: "Off-Balance Sheet",
+    subtitle: "Not counted in net worth",
+    types: ["COLLEGE_SAVINGS", "STOCK_PLAN"],
+  },
   { label: "Liabilities", types: ["CREDIT_CARD", "MORTGAGE"] },
 ];
 
