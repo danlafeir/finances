@@ -1,0 +1,172 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { TaxRecordInput } from "@/lib/schemas";
+import { TAX_FORM_ELIGIBLE_ACCOUNT_TYPES } from "@/lib/tax/forms";
+import type { TaxFormType } from "@/generated/prisma/enums";
+import { z } from "zod";
+
+async function assertEligibleAccount(accountId: string, formType: string) {
+  const account = await prisma.account.findUniqueOrThrow({ where: { id: accountId } });
+  const eligibleTypes = TAX_FORM_ELIGIBLE_ACCOUNT_TYPES[formType] ?? [];
+  if (!eligibleTypes.includes(account.type)) {
+    throw new Error(`${account.name} is not an eligible account type for this form.`);
+  }
+}
+
+export async function createTaxRecord(data: TaxRecordInput) {
+  const parsed = TaxRecordInput.parse(data);
+  await assertEligibleAccount(parsed.accountId, parsed.formType);
+
+  const created = await prisma.taxRecord.create({ data: parsed });
+
+  revalidatePath("/tax");
+  revalidatePath(`/accounts/${parsed.accountId}`);
+
+  return created;
+}
+
+export async function updateTaxRecord(id: string, data: TaxRecordInput) {
+  const parsed = TaxRecordInput.parse(data);
+  await assertEligibleAccount(parsed.accountId, parsed.formType);
+
+  const existing = await prisma.taxRecord.findUniqueOrThrow({ where: { id } });
+  const updated = await prisma.taxRecord.update({ where: { id }, data: parsed });
+
+  revalidatePath("/tax");
+  revalidatePath(`/accounts/${parsed.accountId}`);
+  if (existing.accountId && existing.accountId !== parsed.accountId) {
+    revalidatePath(`/accounts/${existing.accountId}`);
+  }
+
+  return updated;
+}
+
+export async function deleteTaxRecord(id: string) {
+  const existing = await prisma.taxRecord.findUniqueOrThrow({ where: { id } });
+  await prisma.taxRecord.delete({ where: { id } });
+
+  revalidatePath("/tax");
+  if (existing.accountId) {
+    revalidatePath(`/accounts/${existing.accountId}`);
+  }
+}
+
+const DuplicateKey = z.object({
+  taxYear: z.number().int(),
+  formType: z.string(),
+  accountId: z.string(),
+  payerName: z.string(),
+});
+
+export async function findDuplicateTaxRecords(rows: z.infer<typeof DuplicateKey>[]) {
+  const keys = z.array(DuplicateKey).parse(rows);
+  if (keys.length === 0) return [];
+
+  const candidates = await prisma.taxRecord.findMany({
+    where: {
+      OR: keys.map((k) => ({
+        taxYear: k.taxYear,
+        formType: k.formType as TaxFormType,
+        accountId: k.accountId,
+        payerName: k.payerName,
+      })),
+    },
+    select: { id: true, taxYear: true, formType: true, accountId: true, payerName: true },
+  });
+
+  return candidates;
+}
+
+export async function commitTaxCsvRows(rows: TaxRecordInput[]) {
+  const parsedRows = z.array(TaxRecordInput).parse(rows);
+  if (parsedRows.length === 0) return { imported: 0, skipped: 0 };
+
+  const keyOf = (r: { taxYear: number; formType: string; accountId: string; payerName: string }) =>
+    `${r.taxYear}|${r.formType}|${r.accountId}|${r.payerName}`;
+
+  const existing = await prisma.taxRecord.findMany({
+    where: {
+      OR: parsedRows.map((r) => ({
+        taxYear: r.taxYear,
+        formType: r.formType as TaxFormType,
+        accountId: r.accountId,
+        payerName: r.payerName,
+      })),
+    },
+    select: { taxYear: true, formType: true, accountId: true, payerName: true },
+  });
+  const existingKeys = new Set(existing.map((e) => keyOf({ ...e, accountId: e.accountId ?? "" })));
+
+  const deduped = Array.from(new Map(parsedRows.map((r) => [keyOf(r), r])).values());
+  const toInsert = deduped.filter((r) => !existingKeys.has(keyOf(r)));
+  const skipped = parsedRows.length - toInsert.length;
+
+  if (toInsert.length > 0) {
+    await prisma.taxRecord.createMany({ data: toInsert });
+  }
+
+  revalidatePath("/tax");
+  for (const accountId of new Set(toInsert.map((r) => r.accountId))) {
+    revalidatePath(`/accounts/${accountId}`);
+  }
+
+  return { imported: toInsert.length, skipped };
+}
+
+export async function getTaxRecords(taxYear: number) {
+  return prisma.taxRecord.findMany({
+    where: { taxYear },
+    include: { account: true },
+    orderBy: [{ formType: "asc" }, { payerName: "asc" }],
+  });
+}
+
+export async function getTaxYearsWithData() {
+  const rows = await prisma.taxRecord.findMany({
+    distinct: ["taxYear"],
+    select: { taxYear: true },
+    orderBy: { taxYear: "desc" },
+  });
+  return rows.map((r) => r.taxYear);
+}
+
+export async function getTaxSummary(taxYear: number) {
+  const result = await prisma.taxRecord.aggregate({
+    where: { taxYear },
+    _sum: {
+      interestIncomeCents: true,
+      ordinaryDividendsCents: true,
+      qualifiedDividendsCents: true,
+      capitalGainDistributionsCents: true,
+      shortTermCapitalGainCents: true,
+      longTermCapitalGainCents: true,
+      mortgageInterestPaidCents: true,
+      federalTaxWithheldCents: true,
+    },
+  });
+
+  const sum = result._sum;
+  return {
+    interestIncomeCents: sum.interestIncomeCents ?? 0,
+    ordinaryDividendsCents: sum.ordinaryDividendsCents ?? 0,
+    qualifiedDividendsCents: sum.qualifiedDividendsCents ?? 0,
+    capitalGainDistributionsCents: sum.capitalGainDistributionsCents ?? 0,
+    shortTermCapitalGainCents: sum.shortTermCapitalGainCents ?? 0,
+    longTermCapitalGainCents: sum.longTermCapitalGainCents ?? 0,
+    mortgageInterestPaidCents: sum.mortgageInterestPaidCents ?? 0,
+    federalTaxWithheldCents: sum.federalTaxWithheldCents ?? 0,
+  };
+}
+
+export async function getTaxRecordsForAccount(accountId: string) {
+  return prisma.taxRecord.findMany({
+    where: { accountId },
+    orderBy: [{ taxYear: "desc" }, { formType: "asc" }],
+  });
+}
+
+export async function getTaxRecord(id: string) {
+  return prisma.taxRecord.findUniqueOrThrow({ where: { id } });
+}
