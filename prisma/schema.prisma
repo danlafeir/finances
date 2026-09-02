@@ -118,16 +118,6 @@ model Transaction {
   @@index([transferPairId])
 }
 
-model Budget {
-  id          String @id @default(cuid())
-  monthKey    String
-  limitCents  Int
-  description String
-
-  @@unique([description, monthKey])
-  @@index([monthKey])
-}
-
 model Holding {
   id             String   @id @default(cuid())
   ticker         String

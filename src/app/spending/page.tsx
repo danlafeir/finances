@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MonthPicker } from "@/components/budgets/MonthPicker";
+import { MonthPicker } from "@/components/spending/MonthPicker";
 import { AccountFilter } from "@/components/spending/AccountFilter";
 import {
   getSpendingAccounts,

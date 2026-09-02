@@ -1,6 +1,6 @@
 # Finances
 
-A personal finance tracker built with Next.js, Prisma, and SQLite. Track accounts, balances, investments, spending, and budgets in one place — no third-party data sync required.
+A personal finance tracker built with Next.js, Prisma, and SQLite. Track accounts, balances, investments, and spending in one place — no third-party data sync required.
 
 ---
 
@@ -51,7 +51,6 @@ The dashboard gives a high-level snapshot of your financial picture:
 - **Net Worth** — total assets (cash accounts + home value + investment holdings) minus liabilities. Off-balance-sheet accounts (529, stock plans) are excluded.
 - **Liquid Cash** — sum of all checking and high-yield savings accounts.
 - **Total Investments** — sum of qualified brokerage, taxable brokerage, and HSA accounts.
-- **Budget Status** — progress bars for each active budget against spending for the current month.
 
 ### Accounts
 
@@ -73,7 +72,7 @@ Off-balance-sheet accounts appear on the accounts page but are excluded from net
 Standard cash accounts with a snapshot balance and optional APY (for HYS). Transactions can be imported from CSV exports (Chase and similar formats supported). The detail page shows the last 6 months of transactions.
 
 **Credit Card**
-Treated as a liability (subtracts from net worth). Supports CSV transaction import. The spending and budgets pages draw from credit card and checking transactions.
+Treated as a liability (subtracts from net worth). Supports CSV transaction import. The spending page draws from credit card and checking transactions.
 
 **Mortgage**
 Enter the home value, loan amount, interest rate, term, and first payment date. The app generates (or imports) a full amortization schedule and shows remaining balance, equity, and next payment on the detail page. Home value is included in net worth assets.
