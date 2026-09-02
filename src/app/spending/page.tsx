@@ -2,12 +2,18 @@ import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthPicker } from "@/components/spending/MonthPicker";
 import { AccountFilter } from "@/components/spending/AccountFilter";
+import { MonthlySpendingChart } from "@/components/spending/MonthlySpendingChart";
+import { RecurringChargesTable, type LabeledRecurringItem } from "@/components/spending/RecurringChargesTable";
+import { UnclassifiedRecurringTable, type UnclassifiedRecurringItem } from "@/components/spending/UnclassifiedRecurringTable";
 import {
   getSpendingAccounts,
   getSpendingSummary,
   getRecurringTransactions,
+  getAnnualRecurringTransactions,
   getAnomalousDescriptions,
+  getMonthlySpendingTrend,
 } from "@/actions/spending";
+import { getAllVendorLabels } from "@/actions/vendorLabels";
 import { formatCents } from "@/lib/money";
 import { monthKey } from "@/lib/dates";
 
@@ -28,13 +34,47 @@ export default async function SpendingPage({ searchParams }: PageProps) {
       ? [accountFilter]
       : spendingAccounts.map((a) => a.id);
 
-  const [summary, recurring, anomalies] = await Promise.all([
+  const [summary, recurring, annual, anomalies, trend, vendorLabels] = await Promise.all([
     getSpendingSummary(currentMonth, accountIds),
     getRecurringTransactions(currentMonth, accountIds),
+    getAnnualRecurringTransactions(currentMonth, accountIds),
     getAnomalousDescriptions(currentMonth, accountIds),
+    getMonthlySpendingTrend(currentMonth, accountIds),
+    getAllVendorLabels(),
   ]);
 
   const recurringTotal = recurring.reduce((s, r) => s + r.monthlyCostCents, 0);
+
+  const monthlySet = new Set(recurring.map((r) => r.description));
+  const annualDeduped = annual.filter((a) => !monthlySet.has(a.description));
+  const labelMap = new Map(vendorLabels.map((v) => [v.description, v]));
+
+  const combined = [
+    ...recurring.map((r) => ({
+      description: r.description,
+      frequency: "Monthly" as const,
+      cents: r.monthlyCostCents,
+      lastDate: r.lastDate,
+      occurrences: `${r.monthsFound} / 3 months`,
+    })),
+    ...annualDeduped.map((a) => ({
+      description: a.description,
+      frequency: "Annual" as const,
+      cents: a.amountCents,
+      lastDate: a.lastDate,
+      occurrences: `${a.yearsFound} years`,
+    })),
+  ];
+
+  const labeledItems: LabeledRecurringItem[] = combined
+    .filter((c) => labelMap.has(c.description))
+    .map((c) => {
+      const vendorLabel = labelMap.get(c.description)!;
+      return { ...c, label: vendorLabel.label, tag: vendorLabel.tag };
+    });
+  const unclassifiedItems: UnclassifiedRecurringItem[] = combined.filter(
+    (c) => !labelMap.has(c.description)
+  );
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -94,58 +134,30 @@ export default async function SpendingPage({ searchParams }: PageProps) {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Recurring Charges</CardTitle>
+              <CardTitle className="text-base">Spending Trend</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              {recurring.length === 0 ? (
-                <p className="text-sm text-muted-foreground px-6 py-4">
-                  No recurring transactions detected in the last 3 months.
-                </p>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-xs text-muted-foreground">
-                      <th className="text-left py-2 px-6 font-medium">Description</th>
-                      <th className="text-center py-2 px-3 font-medium">Months Seen</th>
-                      <th className="text-right py-2 px-6 font-medium">Monthly Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recurring.map((r) => (
-                      <tr key={r.description} className="border-b last:border-0 hover:bg-muted/30">
-                        <td className="py-2 px-6">{r.description}</td>
-                        <td className="py-2 px-3 text-center text-muted-foreground">
-                          {r.monthsFound} / 3
-                        </td>
-                        <td className="py-2 px-6 text-right tabular-nums font-medium text-destructive">
-                          {formatCents(r.monthlyCostCents)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t bg-muted/30 text-sm font-medium">
-                      <td className="py-2 px-6" colSpan={2}>
-                        Total recurring
-                      </td>
-                      <td className="py-2 px-6 text-right tabular-nums text-destructive">
-                        {formatCents(recurringTotal)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
+            <CardContent>
+              <MonthlySpendingChart data={trend} />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Spending Anomalies</CardTitle>
+              <CardTitle className="text-base">Recurring Charges</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <RecurringChargesTable items={labeledItems} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Noticeably Higher Spending</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {anomalies.length === 0 ? (
                 <p className="text-sm text-muted-foreground px-6 py-4">
-                  No anomalies detected — spending looks normal this month.
+                  Nothing noticeably higher than usual this month.
                 </p>
               ) : (
                 <table className="w-full text-sm">
@@ -175,6 +187,15 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                   </tbody>
                 </table>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Unclassified Recurring Charges</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <UnclassifiedRecurringTable items={unclassifiedItems} />
             </CardContent>
           </Card>
         </>
