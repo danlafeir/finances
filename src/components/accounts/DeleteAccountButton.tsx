@@ -36,7 +36,7 @@ export function DeleteAccountButton({ id, name }: { id: string; name: string }) 
           <DialogHeader>
             <DialogTitle>Delete &ldquo;{name}&rdquo;?</DialogTitle>
             <DialogDescription>
-              This will permanently delete the account and all its transactions. This cannot be undone.
+              This will permanently delete the account, all its transactions, and any tax records linked to it. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">

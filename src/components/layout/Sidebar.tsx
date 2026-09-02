@@ -7,6 +7,7 @@ import {
   Wallet,
   ShoppingCart,
   TrendingUp,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ const navItems = [
   { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/spending", label: "Spending", icon: ShoppingCart },
   { href: "/investments", label: "Investments", icon: TrendingUp },
+  { href: "/tax", label: "Tax", icon: Receipt },
 ];
 
 export function Sidebar() {

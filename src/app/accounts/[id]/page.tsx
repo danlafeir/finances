@@ -4,12 +4,15 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getAccountWithBalance } from "@/actions/accounts";
 import { prisma } from "@/lib/prisma";
-import { Pencil, Upload } from "lucide-react";
+import { Pencil, Upload, Plus } from "lucide-react";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
+import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
+import { TAX_ELIGIBLE_ACCOUNT_TYPES, TAX_FORM_LABEL } from "@/lib/tax/forms";
 import { getMortgageDetails } from "@/actions/mortgage";
 import { lookupTickerPrice } from "@/actions/accounts";
+import { getTaxRecordsForAccount } from "@/actions/tax";
 import { formatCents } from "@/lib/money";
 import {
   getScheduleSummary,
@@ -92,6 +95,30 @@ export default async function AccountDetailPage({
   const { currentBalanceCents, nextPayment, paidOffPercent } = mortgage
     ? getScheduleSummary(scheduleRows, mortgage.principalCents)
     : { currentBalanceCents: 0, nextPayment: null, paidOffPercent: 0 };
+
+  const isTaxEligible = TAX_ELIGIBLE_ACCOUNT_TYPES.has(account.type);
+  const taxRecords = isTaxEligible ? await getTaxRecordsForAccount(id) : [];
+
+  const scheduleInterestByYear: Record<number, number> = {};
+  if (isMortgage) {
+    for (const row of scheduleRows) {
+      const year = new Date(row.paymentDate).getFullYear();
+      scheduleInterestByYear[year] = (scheduleInterestByYear[year] ?? 0) + row.interestCents;
+    }
+  }
+
+  function taxRecordAmountCents(r: (typeof taxRecords)[number]): number {
+    switch (r.formType) {
+      case "FORM_1099_INT":
+        return r.interestIncomeCents ?? 0;
+      case "FORM_1099_DIV_B":
+        return r.ordinaryDividendsCents ?? 0;
+      case "FORM_1098":
+        return r.mortgageInterestPaidCents ?? 0;
+      default:
+        return 0;
+    }
+  }
 
   return (
     <div className="p-6 w-full max-w-5xl">
@@ -231,6 +258,76 @@ export default async function AccountDetailPage({
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {isTaxEligible && (
+        <div className="mb-6 border rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground">Tax History</h2>
+            <Link
+              href={`/tax/add?accountId=${id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Tax Record
+            </Link>
+          </div>
+          {taxRecords.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No tax records yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {taxRecords.map((r) => {
+                const scheduleInterestCents =
+                  isMortgage && r.formType === "FORM_1098" ? scheduleInterestByYear[r.taxYear] : undefined;
+                const principalDiffCents =
+                  isMortgage && r.formType === "FORM_1098" && r.outstandingPrincipalCents != null
+                    ? r.outstandingPrincipalCents - currentBalanceCents
+                    : null;
+                return (
+                  <div key={r.id} className="py-2 px-3 rounded-md hover:bg-muted/50 text-sm space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-muted-foreground w-12 shrink-0">{r.taxYear}</span>
+                        <Badge variant="outline" className="shrink-0">
+                          {TAX_FORM_LABEL[r.formType] ?? r.formType}
+                        </Badge>
+                        <span className="font-medium truncate">{r.payerName}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="font-medium tabular-nums">{formatCents(taxRecordAmountCents(r))}</span>
+                        <Link
+                          href={`/tax/${r.id}/edit`}
+                          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Link>
+                        <DeleteTaxRecordButton id={r.id} payerName={r.payerName} />
+                      </div>
+                    </div>
+                    {(scheduleInterestCents != null || (principalDiffCents != null && principalDiffCents !== 0)) && (
+                      <div className="pl-[3.75rem] text-xs text-muted-foreground space-y-0.5">
+                        {scheduleInterestCents != null && (
+                          <p>
+                            Form 1098 interest paid: {formatCents(r.mortgageInterestPaidCents ?? 0)} vs.{" "}
+                            {formatCents(scheduleInterestCents)} from the tracked payment schedule
+                            {" — "}differs by{" "}
+                            {formatCents(Math.abs((r.mortgageInterestPaidCents ?? 0) - scheduleInterestCents))}
+                          </p>
+                        )}
+                        {principalDiffCents != null && principalDiffCents !== 0 && (
+                          <p>
+                            Form 1098 outstanding principal: {formatCents(r.outstandingPrincipalCents ?? 0)}
+                            {" — "}differs from tracked balance by {formatCents(Math.abs(principalDiffCents))}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
