@@ -5,11 +5,13 @@ import { TAX_CSV_TEMPLATES } from "./csvTemplates";
 
 /**
  * AI tools frequently wrap CSV output in a ```csv ... ``` fence despite being told
- * not to. Strip a leading/trailing fence line if present before parsing.
+ * not to, often with prose before/after it (e.g. "Here's the CSV:\n```csv\n...\n```").
+ * Extract the first fenced block found anywhere in the text; if there is none,
+ * fall back to the text as-is.
  */
 export function stripCodeFence(text: string): string {
   const trimmed = text.trim();
-  const fenced = trimmed.match(/^```[a-zA-Z]*\n([\s\S]*?)\n?```$/);
+  const fenced = trimmed.match(/```[a-zA-Z]*\n([\s\S]*?)\n?```/);
   return fenced ? fenced[1].trim() : trimmed;
 }
 

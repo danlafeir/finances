@@ -112,7 +112,15 @@ export default async function AccountDetailPage({
       case "FORM_1099_INT":
         return r.interestIncomeCents ?? 0;
       case "FORM_1099_DIV_B":
-        return r.ordinaryDividendsCents ?? 0;
+        // Ordinary dividends already includes qualified dividends as a subset — sum
+        // with capital gain distributions and short/long-term gains so a sales-only
+        // year (no dividends) doesn't display as $0.00.
+        return (
+          (r.ordinaryDividendsCents ?? 0) +
+          (r.capitalGainDistributionsCents ?? 0) +
+          (r.shortTermCapitalGainCents ?? 0) +
+          (r.longTermCapitalGainCents ?? 0)
+        );
       case "FORM_1098":
         return r.mortgageInterestPaidCents ?? 0;
       default:

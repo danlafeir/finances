@@ -21,7 +21,15 @@ function keyAmountCents(record: TaxRecord): number {
     case "FORM_1099_INT":
       return record.interestIncomeCents ?? 0;
     case "FORM_1099_DIV_B":
-      return record.ordinaryDividendsCents ?? 0;
+      // Ordinary dividends already includes qualified dividends as a subset (IRS
+      // convention) — sum with capital gain distributions and short/long-term gains
+      // rather than showing just ordinary dividends, which is 0 for a sales-only year.
+      return (
+        (record.ordinaryDividendsCents ?? 0) +
+        (record.capitalGainDistributionsCents ?? 0) +
+        (record.shortTermCapitalGainCents ?? 0) +
+        (record.longTermCapitalGainCents ?? 0)
+      );
     case "FORM_1098":
       return record.mortgageInterestPaidCents ?? 0;
     default:
