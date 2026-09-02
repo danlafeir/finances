@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
 import { BudgetStatusBars } from "@/components/dashboard/BudgetStatusBars";
-import { TotalInvestmentsCard, LiquidCashCard } from "@/components/dashboard/SummaryStatCard";
+import { AccessibleInvestmentsCard, RestrictedInvestmentsCard, LiquidCashCard } from "@/components/dashboard/SummaryStatCard";
 
 const CardSkeleton = () => <div className="h-32 rounded-lg bg-muted animate-pulse" />;
 
@@ -20,7 +20,11 @@ export default async function DashboardPage() {
         </Suspense>
 
         <Suspense fallback={<CardSkeleton />}>
-          <TotalInvestmentsCard />
+          <AccessibleInvestmentsCard />
+        </Suspense>
+
+        <Suspense fallback={<CardSkeleton />}>
+          <RestrictedInvestmentsCard />
         </Suspense>
 
         <Suspense fallback={<CardSkeleton />}>
