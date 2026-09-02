@@ -64,3 +64,22 @@ export const TaxRecordInput = z.discriminatedUnion("formType", [
 ]);
 
 export type TaxRecordInput = z.infer<typeof TaxRecordInput>;
+
+export const TaxReturnSummaryInput = z.object({
+  taxYear: z.number().int().min(1990).max(2100),
+  filingStatus: z.string().optional().nullable(),
+  agiCents: z.number().int(),
+  taxableIncomeCents: z.number().int().nonnegative(),
+  totalTaxCents: z.number().int().nonnegative(),
+  totalPaymentsCents: z.number().int().nonnegative().optional().nullable(),
+  refundCents: z.number().int().nonnegative().optional().nullable(),
+  amountOwedCents: z.number().int().nonnegative().optional().nullable(),
+  taxableInterestCents: z.number().int().nonnegative().optional().nullable(),
+  ordinaryDividendsCents: z.number().int().nonnegative().optional().nullable(),
+  qualifiedDividendsCents: z.number().int().nonnegative().optional().nullable(),
+  capitalGainCents: z.number().int().optional().nullable(),
+  mortgageInterestDeductionCents: z.number().int().nonnegative().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export type TaxReturnSummaryInput = z.infer<typeof TaxReturnSummaryInput>;
