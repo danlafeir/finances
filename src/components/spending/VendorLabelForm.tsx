@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { upsertVendorLabel } from "@/actions/vendorLabels";
-import { VENDOR_TAGS } from "@/lib/vendorTags";
+import { VENDOR_TAGS, VENDOR_TAG_LABEL } from "@/lib/vendorTags";
 import type { VendorTag } from "@/generated/prisma/client";
 
 interface VendorLabelFormProps {
@@ -69,7 +69,7 @@ export function VendorLabelForm({ description, existingLabel, onDone }: VendorLa
 
       <div className="space-y-1.5">
         <Label htmlFor="tag">Tag</Label>
-        <Select name="tag" defaultValue={existingLabel?.tag ?? "OTHER"} required>
+        <Select name="tag" items={VENDOR_TAG_LABEL} defaultValue={existingLabel?.tag ?? "OTHER"} required>
           <SelectTrigger>
             <SelectValue placeholder="Select tag" />
           </SelectTrigger>

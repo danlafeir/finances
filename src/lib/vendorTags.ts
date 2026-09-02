@@ -6,6 +6,8 @@ export const VENDOR_TAGS: { value: VendorTag; label: string }[] = [
   { value: "MEMBERSHIP", label: "Membership" },
   { value: "INSURANCE", label: "Insurance" },
   { value: "UTILITY", label: "Utility" },
+  { value: "CREDIT_CARD", label: "Credit Card" },
+  { value: "INVESTMENT", label: "Investment" },
   { value: "OTHER", label: "Other" },
 ];
 
