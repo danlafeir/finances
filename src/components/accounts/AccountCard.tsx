@@ -38,9 +38,9 @@ export function AccountCard({ account }: AccountCardProps) {
                 {ACCOUNT_TYPE_LABEL[account.type] ?? account.type}
               </Badge>
             </div>
-            {account.broker && (
-              <p className="text-xs text-muted-foreground/70 mt-0.5 ml-5">{account.broker}</p>
-            )}
+            <p className="text-xs text-muted-foreground/70 mt-0.5 ml-5 h-4">
+              {account.broker ?? ""}
+            </p>
           </div>
         </CardHeader>
         <CardContent>
