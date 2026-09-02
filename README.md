@@ -107,6 +107,15 @@ Checking and credit card accounts have an "Import Transactions" button on their 
 2. Lets you review and confirm the mapping before importing.
 3. Deduplicates by a SHA-256 hash of `accountId|date|description|amountCents` — re-importing the same file is safe.
 
+### Spending
+
+Tracks recurring charges and unusual activity across checking and credit card accounts, filterable by account and month:
+
+- **Spending Trend** — total spend for the trailing 6 months.
+- **Recurring Charges** — vendors you've labeled with a custom name and a tag (Bill, Subscription, Membership, Insurance, Utility, Other). A charge qualifies as recurring if it billed in at least 2 of the last 3 months, or in the same calendar month across at least 2 of the last 3 years (catching annual charges like insurance renewals).
+- **Noticeably Higher Spending** — vendors spending more than 1.5x their trailing 3-month average this month.
+- **Unclassified Recurring Charges** — detected recurring charges (monthly or annual) that haven't been labeled yet; label one here to move it into Recurring Charges.
+
 ---
 
 ## Tech stack
@@ -117,4 +126,5 @@ Checking and credit card accounts have an "Import Transactions" button on their 
 | Database | SQLite via libSQL (`@libsql/client`) |
 | ORM | Prisma 7 |
 | UI | shadcn/ui on `@base-ui/react` |
+| Charts | Recharts |
 | Prices | Yahoo Finance (`yahoo-finance2`) |
