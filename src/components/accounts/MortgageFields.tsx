@@ -39,10 +39,12 @@ function parseDollars(s: string): number {
   return parseFloat(s.replace(/[$,]/g, "") || "0") || 0;
 }
 
-// Dollars → comma-formatted string with 2 decimal places
+// Dollars → currency-formatted string
 function formatDollars(dollars: number): string {
   if (!dollars) return "";
   return dollars.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -332,7 +334,7 @@ export function MortgageFields({ initial, onChange }: Props) {
             value={homeValue}
             onChange={(e) => setHomeValue(e.target.value)}
             onBlur={() => setHomeValue(formatDollars(parseDollars(homeValue)))}
-            placeholder="450,000.00"
+            placeholder="$450,000.00"
             inputMode="decimal"
           />
         </div>
@@ -343,7 +345,7 @@ export function MortgageFields({ initial, onChange }: Props) {
             value={principal}
             onChange={(e) => setPrincipal(e.target.value)}
             onBlur={() => setPrincipal(formatDollars(parseDollars(principal)))}
-            placeholder="360,000.00"
+            placeholder="$360,000.00"
             inputMode="decimal"
           />
         </div>
@@ -379,7 +381,7 @@ export function MortgageFields({ initial, onChange }: Props) {
             value={monthlyPayment}
             onChange={(e) => setMonthlyPayment(e.target.value)}
             onBlur={(e) => handlePaymentBlur(e.target.value)}
-            placeholder="2,000.00"
+            placeholder="$2,000.00"
             inputMode="decimal"
           />
         </div>

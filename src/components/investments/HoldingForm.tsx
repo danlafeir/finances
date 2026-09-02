@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { createHolding, updateHolding } from "@/actions/holdings";
 import { parseDollarsToCents, centsToDisplay } from "@/lib/money";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import type { Account, Holding } from "@/generated/prisma/client";
 
 interface HoldingFormProps {
@@ -90,14 +91,12 @@ export function HoldingForm({ accounts, holding, onDone }: HoldingFormProps) {
 
       <div className="space-y-1.5">
         <Label htmlFor="costBasis">Total Cost Basis</Label>
-        <Input
+        <CurrencyInput
           id="costBasis"
           name="costBasis"
-          type="text"
-          inputMode="decimal"
           required
           defaultValue={holding ? centsToDisplay(holding.costBasisCents) : ""}
-          placeholder="0.00"
+          placeholder="$0.00"
         />
       </div>
 

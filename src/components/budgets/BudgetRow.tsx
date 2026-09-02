@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Button } from "@/components/ui/button";
-import { formatCents, parseDollarsToCents, centsToDisplay } from "@/lib/money";
+import { formatCents, parseDollarsToCents } from "@/lib/money";
 import { upsertBudget, deleteBudget } from "@/actions/budgets";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, Check, X } from "lucide-react";
@@ -19,7 +19,7 @@ interface BudgetRowProps {
 export function BudgetRow({ description, monthKey, limitCents, spentCents }: BudgetRowProps) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(limitCents ? centsToDisplay(limitCents) : "");
+  const [value, setValue] = useState(limitCents ? String(limitCents / 100) : "");
   const [loading, setLoading] = useState(false);
 
   const pct = limitCents ? Math.min(Math.round((spentCents / limitCents) * 100), 100) : 0;
@@ -51,11 +51,11 @@ export function BudgetRow({ description, monthKey, limitCents, spentCents }: Bud
         <div className="flex items-center gap-2 shrink-0">
           {editing ? (
             <>
-              <Input
+              <CurrencyInput
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(v) => setValue(v)}
                 className="w-28 h-6 text-sm"
-                placeholder="0.00"
+                placeholder="$0.00"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
               />

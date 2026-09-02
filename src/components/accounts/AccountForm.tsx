@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -270,13 +271,11 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
             <Label htmlFor="snapshotBalance">
               {isStockPlan ? "Unvested Amount" : "Balance"}
             </Label>
-            <Input
+            <CurrencyInput
               id="snapshotBalance"
               name="snapshotBalance"
-              type="text"
-              inputMode="decimal"
-              defaultValue={account ? centsToDisplay(account.snapshotBalanceCents) : "0.00"}
-              placeholder="0.00"
+              defaultValue={account ? centsToDisplay(account.snapshotBalanceCents) : ""}
+              placeholder="$0.00"
             />
           </div>
           {!isStockPlan && (
@@ -322,12 +321,10 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
             <Label htmlFor="contributionAmount">
               Contribution{isTaxBrokerage ? " (optional)" : ""}
             </Label>
-            <Input
+            <CurrencyInput
               id="contributionAmount"
               name="contributionAmount"
-              type="text"
-              inputMode="decimal"
-              placeholder="0.00"
+              placeholder="$0.00"
               defaultValue={
                 account?.contributionCents != null
                   ? centsToDisplay(account.contributionCents)
@@ -357,12 +354,10 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
       {(isHSA || isQualBrokerage) && (
         <div className="space-y-1.5">
           <Label htmlFor="contributionAmount">Annual Contribution</Label>
-          <Input
+          <CurrencyInput
             id="contributionAmount"
             name="contributionAmount"
-            type="text"
-            inputMode="decimal"
-            placeholder="0.00"
+            placeholder="$0.00"
             defaultValue={
               account?.contributionCents != null
                 ? centsToDisplay(account.contributionCents)
