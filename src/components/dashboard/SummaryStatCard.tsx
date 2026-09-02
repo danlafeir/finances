@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllAccountsWithBalances } from "@/actions/accounts";
 import { formatCents } from "@/lib/money";
 
-const INVESTMENT_TYPES = new Set(["QUALIFIED_BROKERAGE", "TAXABLE_BROKERAGE"]);
+const INVESTMENT_TYPES = new Set(["QUALIFIED_BROKERAGE", "TAXABLE_BROKERAGE", "HSA"]);
 const LIQUID_TYPES = new Set(["CHECKING", "CASH"]);
 
 export async function TotalInvestmentsCard() {
@@ -18,7 +18,7 @@ export async function TotalInvestmentsCard() {
       </CardHeader>
       <CardContent>
         <p className="text-4xl font-bold tabular-nums">{formatCents(total)}</p>
-        <p className="text-xs text-muted-foreground mt-2">Qualified & taxable brokerage</p>
+        <p className="text-xs text-muted-foreground mt-2">Qualified & taxable brokerage, HSA</p>
       </CardContent>
     </Card>
   );
