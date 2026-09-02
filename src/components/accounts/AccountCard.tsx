@@ -15,14 +15,16 @@ export function AccountCard({ account }: AccountCardProps) {
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-2">
           <div>
-            <div className="flex items-center gap-2">
-              {account.color && (
-                <div
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: account.color }}
-                />
-              )}
-              <CardTitle className="text-base">{account.name}</CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {account.color && (
+                  <div
+                    className="w-3 h-3 rounded-full shrink-0"
+                    style={{ backgroundColor: account.color }}
+                  />
+                )}
+                <CardTitle className="text-base">{account.name}</CardTitle>
+              </div>
               <Badge
                 variant="secondary"
                 className={
