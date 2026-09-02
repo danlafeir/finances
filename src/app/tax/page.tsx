@@ -5,10 +5,10 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TaxYearPicker } from "@/components/tax/TaxYearPicker";
 import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
-import { getTaxYearsWithData, getTaxSummary, getTaxRecords } from "@/actions/tax";
+import { getTaxYearsWithData, getTaxSummary, getTaxRecords, getTaxReconciliation } from "@/actions/tax";
 import { formatCents } from "@/lib/money";
 import { TAX_FORM_LABEL } from "@/lib/tax/forms";
-import { Pencil } from "lucide-react";
+import { Pencil, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TaxRecord } from "@/generated/prisma/client";
 
@@ -42,10 +42,19 @@ export default async function TaxPage({ searchParams }: PageProps) {
   const years = await getTaxYearsWithData();
   const currentYear = sp.year ? parseInt(sp.year, 10) : years[0] ?? new Date().getFullYear() - 1;
 
-  const [summary, records] = await Promise.all([
+  const [summary, records, reconciliation] = await Promise.all([
     getTaxSummary(currentYear),
     getTaxRecords(currentYear),
+    getTaxReconciliation(currentYear),
   ]);
+
+  const effectiveRate =
+    reconciliation && reconciliation.returnSummary.taxableIncomeCents > 0
+      ? `${(
+          (reconciliation.returnSummary.totalTaxCents / reconciliation.returnSummary.taxableIncomeCents) *
+          100
+        ).toFixed(1)}%`
+      : null;
 
   const ordinaryIncomeCents =
     summary.interestIncomeCents +
@@ -131,6 +140,136 @@ export default async function TaxPage({ searchParams }: PageProps) {
             <p className="text-sm text-muted-foreground mt-1">Already paid, from 1099 withholding</p>
           </CardContent>
         </Card>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-medium">Filed Return ({currentYear})</h2>
+          <Link
+            href={`/tax/return?year=${currentYear}`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            {reconciliation ? "Edit" : "Add"} Filed Return
+          </Link>
+        </div>
+
+        {!reconciliation ? (
+          <p className="text-muted-foreground text-sm">
+            No filed return on record for {currentYear}. Add one to see AGI, total tax, and how
+            it compares to the tax data you&apos;ve entered.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-4 text-sm border rounded-lg p-4">
+              <div>
+                <p className="text-muted-foreground text-xs">AGI</p>
+                <p className="font-semibold tabular-nums">
+                  {formatCents(reconciliation.returnSummary.agiCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Taxable Income</p>
+                <p className="font-semibold tabular-nums">
+                  {formatCents(reconciliation.returnSummary.taxableIncomeCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Total Tax</p>
+                <p className="font-semibold tabular-nums">
+                  {formatCents(reconciliation.returnSummary.totalTaxCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Effective Rate</p>
+                <p className="font-semibold tabular-nums">{effectiveRate ?? "—"}</p>
+              </div>
+              {reconciliation.returnSummary.refundCents != null && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Refund</p>
+                  <p className="font-semibold tabular-nums text-emerald-600">
+                    {formatCents(reconciliation.returnSummary.refundCents)}
+                  </p>
+                </div>
+              )}
+              {reconciliation.returnSummary.amountOwedCents != null && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Amount Owed</p>
+                  <p className="font-semibold tabular-nums text-destructive">
+                    {formatCents(reconciliation.returnSummary.amountOwedCents)}
+                  </p>
+                </div>
+              )}
+              {reconciliation.returnSummary.capitalGainCents != null && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Capital Gain/Loss (Line 7)</p>
+                  <p className="font-semibold tabular-nums">
+                    {formatCents(reconciliation.returnSummary.capitalGainCents)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm font-medium mb-2">Tracked vs. reported on the return</p>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr className="text-muted-foreground text-xs">
+                      <th className="text-left py-2 px-3 font-medium">Category</th>
+                      <th className="text-right py-2 px-3 font-medium">On Return</th>
+                      <th className="text-right py-2 px-3 font-medium">Tracked</th>
+                      <th className="text-left py-2 px-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reconciliation.rows.map((row) => {
+                      const gapCents =
+                        row.reportedCents != null ? row.reportedCents - row.trackedCents : null;
+                      return (
+                        <tr key={row.label} className="border-t">
+                          <td className="py-2 px-3">{row.label}</td>
+                          <td className="py-2 px-3 text-right tabular-nums">
+                            {row.reportedCents != null ? (
+                              formatCents(row.reportedCents)
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-right tabular-nums">
+                            {formatCents(row.trackedCents)}
+                          </td>
+                          <td className="py-2 px-3">
+                            {row.status === "no-return-data" && (
+                              <span className="text-xs text-muted-foreground">
+                                {row.label === "Mortgage Interest Deduction"
+                                  ? "Standard deduction taken — not on return"
+                                  : "Not on return"}
+                              </span>
+                            )}
+                            {row.status === "coverage" && gapCents != null && (
+                              <span className="text-xs text-muted-foreground">
+                                {gapCents > 100
+                                  ? `${formatCents(gapCents)} not yet accounted for by a tracked account`
+                                  : "Fully accounted for"}
+                              </span>
+                            )}
+                            {row.status === "exceeds" && gapCents != null && (
+                              <span className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Tracked exceeds the return by {formatCents(-gapCents)} — check for a
+                                duplicate or wrong-year entry
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div>
