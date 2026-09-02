@@ -2,11 +2,12 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { AccountCard } from "@/components/accounts/AccountCard";
 import { getAllAccountsWithBalances } from "@/actions/accounts";
+import { sortAccounts } from "@/lib/accounts";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default async function AccountsPage() {
-  const accounts = await getAllAccountsWithBalances();
+  const accounts = sortAccounts(await getAllAccountsWithBalances());
 
   return (
     <div className="p-6">
