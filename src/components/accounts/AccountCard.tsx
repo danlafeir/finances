@@ -14,7 +14,7 @@ export function AccountCard({ account }: AccountCardProps) {
     <Link href={`/accounts/${account.id}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div>
             <div className="flex items-center gap-2">
               {account.color && (
                 <div
@@ -22,25 +22,23 @@ export function AccountCard({ account }: AccountCardProps) {
                   style={{ backgroundColor: account.color }}
                 />
               )}
-              <div>
-                <CardTitle className="text-base">{account.name}</CardTitle>
-                {account.broker && (
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">{account.broker}</p>
-                )}
-              </div>
+              <CardTitle className="text-base">{account.name}</CardTitle>
+              <Badge
+                variant="secondary"
+                className={
+                  account.type === "STOCK_PLAN"
+                    ? "text-amber-500"
+                    : account.isLiability
+                    ? "text-destructive"
+                    : "text-emerald-600"
+                }
+              >
+                {ACCOUNT_TYPE_LABEL[account.type] ?? account.type}
+              </Badge>
             </div>
-            <Badge
-              variant="secondary"
-              className={
-                account.type === "STOCK_PLAN"
-                  ? "text-amber-500"
-                  : account.isLiability
-                  ? "text-destructive"
-                  : "text-emerald-600"
-              }
-            >
-              {ACCOUNT_TYPE_LABEL[account.type] ?? account.type}
-            </Badge>
+            {account.broker && (
+              <p className="text-xs text-muted-foreground/70 mt-0.5 ml-5">{account.broker}</p>
+            )}
           </div>
         </CardHeader>
         <CardContent>
