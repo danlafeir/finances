@@ -75,7 +75,22 @@ export function TaxReturnForm({ summary, defaultYear }: TaxReturnFormProps) {
         ordinaryDividendsCents: centsOrNull("ordinaryDividendsCents"),
         qualifiedDividendsCents: centsOrNull("qualifiedDividendsCents"),
         capitalGainCents: centsOrNull("capitalGainCents"),
+        shortTermCapitalGainCents: centsOrNull("shortTermCapitalGainCents"),
+        longTermCapitalGainCents: centsOrNull("longTermCapitalGainCents"),
+        capitalLossCarryoverCents: centsOrNull("capitalLossCarryoverCents"),
+        deductionCents: centsOrNull("deductionCents"),
+        itemizedDeductionsCents: centsOrNull("itemizedDeductionsCents"),
+        saltDeductionCents: centsOrNull("saltDeductionCents"),
         mortgageInterestDeductionCents: centsOrNull("mortgageInterestDeductionCents"),
+        qbiDeductionCents: centsOrNull("qbiDeductionCents"),
+        iraDeductionCents: centsOrNull("iraDeductionCents"),
+        hsaDeductionCents: centsOrNull("hsaDeductionCents"),
+        amtiCents: centsOrNull("amtiCents"),
+        tentativeMinimumTaxCents: centsOrNull("tentativeMinimumTaxCents"),
+        amtCents: centsOrNull("amtCents"),
+        additionalMedicareTaxCents: centsOrNull("additionalMedicareTaxCents"),
+        netInvestmentIncomeTaxCents: centsOrNull("netInvestmentIncomeTaxCents"),
+        estimatedTaxPenaltyCents: centsOrNull("estimatedTaxPenaltyCents"),
         notes,
       };
 
@@ -231,18 +246,177 @@ export function TaxReturnForm({ summary, defaultYear }: TaxReturnFormProps) {
               defaultValue={display(initial?.capitalGainCents)}
             />
           </div>
+        </div>
+
+        <h2 className="text-sm font-medium text-muted-foreground pt-2">Capital Gains (Schedule D)</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="shortTermCapitalGainCents">Short-Term Gain or Loss (Line 7)</Label>
+            <CurrencyInput
+              id="shortTermCapitalGainCents"
+              name="shortTermCapitalGainCents"
+              placeholder="$0.00 (use - for a loss)"
+              defaultValue={display(initial?.shortTermCapitalGainCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="longTermCapitalGainCents">Long-Term Gain or Loss (Line 15)</Label>
+            <CurrencyInput
+              id="longTermCapitalGainCents"
+              name="longTermCapitalGainCents"
+              placeholder="$0.00 (use - for a loss)"
+              defaultValue={display(initial?.longTermCapitalGainCents)}
+            />
+          </div>
           <div className="space-y-1.5 col-span-2">
-            <Label htmlFor="mortgageInterestDeductionCents">
-              Mortgage Interest Deduction (Schedule A){" "}
+            <Label htmlFor="capitalLossCarryoverCents">
+              Capital Loss Carryover to Next Year{" "}
               <span className="text-muted-foreground font-normal">
-                (leave blank if you took the standard deduction)
+                (from the Capital Loss Carryover Worksheet, if any — always positive)
               </span>
             </Label>
+            <CurrencyInput
+              id="capitalLossCarryoverCents"
+              name="capitalLossCarryoverCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.capitalLossCarryoverCents)}
+            />
+          </div>
+        </div>
+
+        <h2 className="text-sm font-medium text-muted-foreground pt-2">Deductions</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="deductionCents">Deduction Taken (Line 12)</Label>
+            <CurrencyInput
+              id="deductionCents"
+              name="deductionCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.deductionCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="itemizedDeductionsCents">
+              Itemized Deductions Total (Schedule A, Line 17)
+            </Label>
+            <CurrencyInput
+              id="itemizedDeductionsCents"
+              name="itemizedDeductionsCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.itemizedDeductionsCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="saltDeductionCents">SALT Deduction (Schedule A, Line 5e)</Label>
+            <CurrencyInput
+              id="saltDeductionCents"
+              name="saltDeductionCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.saltDeductionCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="mortgageInterestDeductionCents">Mortgage Interest Deduction (Schedule A)</Label>
             <CurrencyInput
               id="mortgageInterestDeductionCents"
               name="mortgageInterestDeductionCents"
               placeholder="$0.00"
               defaultValue={display(initial?.mortgageInterestDeductionCents)}
+            />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label htmlFor="qbiDeductionCents">Qualified Business Income Deduction (Line 13)</Label>
+            <CurrencyInput
+              id="qbiDeductionCents"
+              name="qbiDeductionCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.qbiDeductionCents)}
+            />
+          </div>
+        </div>
+
+        <h2 className="text-sm font-medium text-muted-foreground pt-2">Above-the-Line Deductions (Schedule 1)</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="iraDeductionCents">IRA Deduction (Line 20)</Label>
+            <CurrencyInput
+              id="iraDeductionCents"
+              name="iraDeductionCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.iraDeductionCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="hsaDeductionCents">HSA Deduction (Line 13)</Label>
+            <CurrencyInput
+              id="hsaDeductionCents"
+              name="hsaDeductionCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.hsaDeductionCents)}
+            />
+          </div>
+        </div>
+
+        <h2 className="text-sm font-medium text-muted-foreground pt-2">
+          AMT &amp; Additional Taxes
+        </h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="amtiCents">AMT Taxable Income (Form 6251, Line 4)</Label>
+            <CurrencyInput
+              id="amtiCents"
+              name="amtiCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.amtiCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="tentativeMinimumTaxCents">Tentative Minimum Tax (Form 6251, Line 7)</Label>
+            <CurrencyInput
+              id="tentativeMinimumTaxCents"
+              name="tentativeMinimumTaxCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.tentativeMinimumTaxCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="amtCents">Alternative Minimum Tax (Schedule 2, Line 1)</Label>
+            <CurrencyInput
+              id="amtCents"
+              name="amtCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.amtCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="additionalMedicareTaxCents">
+              Additional Medicare Tax (Schedule 2, Line 11)
+            </Label>
+            <CurrencyInput
+              id="additionalMedicareTaxCents"
+              name="additionalMedicareTaxCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.additionalMedicareTaxCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="netInvestmentIncomeTaxCents">
+              Net Investment Income Tax (Schedule 2, Line 12)
+            </Label>
+            <CurrencyInput
+              id="netInvestmentIncomeTaxCents"
+              name="netInvestmentIncomeTaxCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.netInvestmentIncomeTaxCents)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="estimatedTaxPenaltyCents">Estimated Tax Penalty (Line 38)</Label>
+            <CurrencyInput
+              id="estimatedTaxPenaltyCents"
+              name="estimatedTaxPenaltyCents"
+              placeholder="$0.00"
+              defaultValue={display(initial?.estimatedTaxPenaltyCents)}
             />
           </div>
         </div>
