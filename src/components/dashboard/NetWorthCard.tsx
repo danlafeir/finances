@@ -23,9 +23,12 @@ export async function NetWorthCard() {
     .filter((a) => a.isLiability)
     .reduce((s, a) => s + a.balanceCents, 0);
 
+  // investmentValue is a decomposition of money already inside cashAssets
+  // (brokerage/HSA account balances), not additional money — it must not be
+  // added into netWorth or brokerage holdings get counted twice.
   const investmentValue = totalValueCents;
   const assets = cashAssets + homeValue;
-  const netWorth = assets + investmentValue - Math.abs(liabilities);
+  const netWorth = assets - Math.abs(liabilities);
 
   return (
     <Card>
