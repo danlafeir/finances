@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getAccountWithBalance } from "@/actions/accounts";
 import { prisma } from "@/lib/prisma";
-import { Pencil, Upload, Plus } from "lucide-react";
+import { Pencil, Upload, Plus, Info, ChevronDown } from "lucide-react";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { AddSnapshotButton } from "@/components/accounts/AddSnapshotButton";
 import { UnlinkAccountButton } from "@/components/plaid/UnlinkAccountButton";
@@ -12,6 +12,8 @@ import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
 import { TAX_ELIGIBLE_ACCOUNT_TYPES, TAX_FORM_LABEL } from "@/lib/tax/forms";
+import { getAccountTaxGuidance } from "@/lib/tax/accountGuidance";
+import { TaxGuidanceBody } from "@/components/tax/TaxGuidanceBody";
 import { getMortgageDetails } from "@/actions/mortgage";
 import { lookupTickerPrice } from "@/actions/accounts";
 import { getTaxRecordsForAccount } from "@/actions/tax";
@@ -100,6 +102,7 @@ export default async function AccountDetailPage({
 
   const isTaxEligible = TAX_ELIGIBLE_ACCOUNT_TYPES.has(account.type);
   const taxRecords = isTaxEligible ? await getTaxRecordsForAccount(id) : [];
+  const taxGuidance = getAccountTaxGuidance(account.type);
 
   const scheduleInterestByYear: Record<number, number> = {};
   if (isMortgage) {
@@ -274,6 +277,30 @@ export default async function AccountDetailPage({
           </div>
         </div>
       )}
+
+      <details className="group mb-6 border rounded-lg p-4">
+        <summary className="flex items-center justify-between cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5" />
+            Tax Notes
+          </h2>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="space-y-3 pt-3">
+          <TaxGuidanceBody guidance={taxGuidance} />
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-xs text-muted-foreground italic">
+              General information, not tax advice — confirm anything you rely on with a tax professional or the current-year IRS rules.
+            </p>
+            <Link
+              href={`/tax/guide#${account.type}`}
+              className="text-xs text-muted-foreground hover:underline shrink-0 ml-3"
+            >
+              Full tax guide
+            </Link>
+          </div>
+        </div>
+      </details>
 
       {isTaxEligible && (
         <div className="mb-6 border rounded-lg p-4 space-y-3">

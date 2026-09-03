@@ -23,7 +23,19 @@ interface PageProps {
   searchParams: Promise<{ year?: string }>;
 }
 
-const SALT_CAP_CENTS = 1_000_000; // $10,000 — Schedule A line 5e cap
+// Schedule A line 5e cap. 2025's tax law (OBBBA) raised this from a flat $10,000 to a
+// $40,000 base for 2025, growing 1%/year through 2029, phased down 30% of MAGI over
+// $500,000 (same 1%/year growth, floor $10,000), then reverting to $10,000 in 2030.
+// AGI is used as a MAGI proxy — close enough for this app's add-backs.
+function saltCapCents(year: number, magiCents: number): number {
+  if (year < 2025 || year >= 2030) return 1_000_000;
+  const growth = Math.pow(1.01, year - 2025);
+  const base = Math.round(4_000_000 * growth);
+  const threshold = Math.round(50_000_000 * growth);
+  if (magiCents <= threshold) return base;
+  const reduction = Math.round((magiCents - threshold) * 0.3);
+  return Math.max(1_000_000, base - reduction);
+}
 
 function ComparisonBar({
   label,
@@ -100,6 +112,9 @@ export default async function TaxPage({ searchParams }: PageProps) {
           <Suspense>
             <TaxYearPicker currentYear={currentYear} />
           </Suspense>
+          <Link href="/tax/guide" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            Tax Guide
+          </Link>
           <Link href="/tax/add" className={cn(buttonVariants({ size: "sm" }))}>
             Add Tax Data
           </Link>
@@ -221,6 +236,7 @@ export default async function TaxPage({ searchParams }: PageProps) {
           </p>
         ) : (() => {
           const rs = reconciliation.returnSummary;
+          const saltCapForYearCents = saltCapCents(currentYear, rs.agiCents);
           const hasDeductionCompare = rs.deductionCents != null || rs.itemizedDeductionsCents != null;
           const deductionMax = Math.max(rs.deductionCents ?? 0, rs.itemizedDeductionsCents ?? 0, 1);
           const hasAmtOrSurtax =
@@ -321,15 +337,17 @@ export default async function TaxPage({ searchParams }: PageProps) {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>SALT deduction (Schedule A, Line 5e)</span>
                       <span className="tabular-nums">
-                        {formatCents(rs.saltDeductionCents)} of {formatCents(SALT_CAP_CENTS)} cap
+                        {formatCents(rs.saltDeductionCents)} of {formatCents(saltCapForYearCents)} cap
                       </span>
                     </div>
-                    <Progress value={Math.min(100, (rs.saltDeductionCents / SALT_CAP_CENTS) * 100)} />
-                    {rs.saltDeductionCents >= SALT_CAP_CENTS && (
+                    <Progress
+                      value={Math.min(100, (rs.saltDeductionCents / saltCapForYearCents) * 100)}
+                    />
+                    {rs.saltDeductionCents >= saltCapForYearCents && (
                       <p className="text-xs text-amber-600 flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
-                        You hit the $10,000 SALT cap — any additional state/local tax paid bought
-                        you nothing federally
+                        You hit the {formatCents(saltCapForYearCents)} SALT cap for {currentYear} —
+                        any additional state/local tax paid bought you nothing federally
                       </p>
                     )}
                   </div>
