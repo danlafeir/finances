@@ -47,6 +47,17 @@ enum VendorTag {
   OTHER
 }
 
+enum PlaidConnectionStatus {
+  ACTIVE
+  LOGIN_REQUIRED
+  ERROR
+}
+
+enum HoldingSource {
+  MANUAL
+  PLAID
+}
+
 model Account {
   id                  String      @id @default(cuid())
   name                String
@@ -61,8 +72,9 @@ model Account {
   contributionFrequency String?
   currency             String      @default("USD")
   color               String?
-  plaidItemId         String?
-  plaidAccountId      String?
+  plaidConnectionId   String?
+  plaidConnection     PlaidConnection? @relation(fields: [plaidConnectionId], references: [id], onDelete: SetNull)
+  plaidAccountId      String?     @unique
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
   transactions        Transaction[]
@@ -71,6 +83,23 @@ model Account {
   mortgageDetails     MortgageDetails?
   taxRecords          TaxRecord[]
   balanceSnapshots    AccountSnapshot[]
+}
+
+model PlaidConnection {
+  id                    String                @id @default(cuid())
+  itemId                String                @unique
+  accessTokenCiphertext String
+  institutionId         String?
+  institutionName       String?
+  ownerName             String
+  environment           String
+  status                PlaidConnectionStatus @default(ACTIVE)
+  cursor                String?
+  lastSyncedAt          DateTime?
+  lastSyncError         String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  accounts              Account[]
 }
 
 model AccountSnapshot {
@@ -149,15 +178,17 @@ model Transaction {
 }
 
 model Holding {
-  id             String   @id @default(cuid())
-  ticker         String
-  name           String?
-  shares         Float
-  costBasisCents Int
-  accountId      String
-  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String        @id @default(cuid())
+  ticker          String
+  name            String?
+  shares          Float
+  costBasisCents  Int
+  source          HoldingSource @default(MANUAL)
+  plaidSecurityId String?
+  accountId       String
+  account         Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@unique([accountId, ticker])
   @@index([ticker])
