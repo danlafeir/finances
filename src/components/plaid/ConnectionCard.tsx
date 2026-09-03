@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RemoveConnectionButton } from "@/components/plaid/RemoveConnectionButton";
+import { SyncNowButton } from "@/components/plaid/SyncNowButton";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
 import type { PlaidConnection, Account } from "@/generated/prisma/client";
 
@@ -57,8 +58,9 @@ export function ConnectionCard({ connection }: ConnectionCardProps) {
             ? `Last synced ${new Date(connection.lastSyncedAt).toLocaleString()}`
             : "Never synced"}
         </p>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <RemoveConnectionButton id={connection.id} institutionName={connection.institutionName} />
+          <SyncNowButton connectionId={connection.id} />
         </div>
       </CardContent>
     </Card>
