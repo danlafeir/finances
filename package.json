@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "op run --env-file=.env -- next dev",
-    "build": "op run --env-file=.env -- next build",
-    "start": "op run --env-file=.env -- next start",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint"
   },
   "prisma": {

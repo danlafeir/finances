@@ -22,22 +22,19 @@ Edit `.env`:
 DATABASE_URL="file:./dev.db"
 PRICE_TTL_MINUTES=60
 
-PLAID_CLIENT_ID=op://Private/Finances-Plaid/client_id
-PLAID_SECRET=op://Private/Finances-Plaid/secret
+PLAID_CLIENT_ID=
+PLAID_SECRET=
 PLAID_ENV=sandbox
-ENCRYPTION_KEY=op://Private/Finances-Plaid/encryption_key
+ENCRYPTION_KEY=
 ```
 
 `DATABASE_URL` points at a local SQLite file via libSQL. `PRICE_TTL_MINUTES` controls how long stock/ETF price lookups are cached before re-fetching from Yahoo Finance (default 60 is fine).
 
-The Plaid and encryption values are [1Password secret references](https://developer.1password.com/docs/cli/secret-references/), resolved at launch by `op run` (already wired into the `dev`/`build`/`start` scripts — see below) rather than sitting in `.env` as plaintext. To set this up:
+The Plaid and encryption values currently sit in `.env` as plaintext. To set this up:
 
 1. Create a Plaid developer account at [dashboard.plaid.com](https://dashboard.plaid.com) and grab your `client_id` and Sandbox `secret`.
 2. Generate an encryption key: `openssl rand -base64 32`.
-3. In 1Password, create an item named `Finances-Plaid` (any vault) with three fields: `client_id`, `secret`, `encryption_key`, filled in with the values above.
-4. Adjust the vault segment in `.env` (`Private` by default) if your item lives elsewhere.
-
-`op run` will prompt you to unlock 1Password the first time it needs a secret in a given session.
+3. Fill in `PLAID_CLIENT_ID`, `PLAID_SECRET`, and `ENCRYPTION_KEY` in `.env` with those values.
 
 ```bash
 # Apply migrations (creates the SQLite file on first run)
@@ -155,4 +152,4 @@ Tracks recurring charges and unusual activity across checking and credit card ac
 | Charts | Recharts |
 | Prices | Yahoo Finance (`yahoo-finance2`) |
 | Bank/brokerage sync | Plaid (`plaid`, `react-plaid-link`) |
-| Secrets | 1Password CLI (`op run`) |
+| Secrets | plaintext `.env` |
