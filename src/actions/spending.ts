@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { currentMonthKey, monthKey, monthKeyShortLabel, monthRange, prevMonthKey, shiftMonthKeyYears } from "@/lib/dates";
 import { normalizeDescriptionKey } from "@/lib/descriptionKey";
+import type { VendorTag } from "@/generated/prisma/enums";
 
 export async function getSpendingAccounts() {
   return prisma.account.findMany({
@@ -11,25 +12,37 @@ export async function getSpendingAccounts() {
   });
 }
 
+async function getTaggedDescriptionSet(tags: VendorTag[]): Promise<Set<string>> {
+  const rows = await prisma.vendorLabel.findMany({
+    where: { tag: { in: tags } },
+    select: { description: true },
+  });
+  return new Set(rows.map((r) => r.description));
+}
+
 export async function getSpendingSummary(
   mk: string,
   accountIds: string[]
 ): Promise<{ totalExpenseCents: number; transactionCount: number }> {
   if (accountIds.length === 0) return { totalExpenseCents: 0, transactionCount: 0 };
   const { start, end } = monthRange(mk);
-  const result = await prisma.transaction.aggregate({
-    _sum: { amountCents: true },
-    _count: { id: true },
-    where: {
-      accountId: { in: accountIds },
-      type: "EXPENSE",
-      transferPairId: null,
-      date: { gte: start, lte: end },
-    },
-  });
+  const [rows, creditCardPayments] = await Promise.all([
+    prisma.transaction.findMany({
+      where: {
+        accountId: { in: accountIds },
+        type: "EXPENSE",
+        transferPairId: null,
+        date: { gte: start, lte: end },
+      },
+      select: { description: true, amountCents: true },
+    }),
+    getTaggedDescriptionSet(["CREDIT_CARD"]),
+  ]);
+
+  const spend = rows.filter((r) => !creditCardPayments.has(normalizeDescriptionKey(r.description)));
   return {
-    totalExpenseCents: result._sum.amountCents ?? 0,
-    transactionCount: result._count.id,
+    totalExpenseCents: spend.reduce((s, r) => s + r.amountCents, 0),
+    transactionCount: spend.length,
   };
 }
 
@@ -177,20 +190,35 @@ export async function getMonthlySpendingTrend(
     cursor = prevMonthKey(cursor);
   }
 
-  const isCurrentMonth = mk === currentMonthKey();
+  const windowStart = monthRange(keys[0]).start;
+  const windowEnd = monthRange(keys[keys.length - 1]).end;
 
-  return Promise.all(
-    keys.map(async (k, i) => {
-      const { start, end } = monthRange(k);
-      const result = await prisma.transaction.aggregate({
-        _sum: { amountCents: true },
-        where: { accountId: { in: accountIds }, type: "EXPENSE", transferPairId: null, date: { gte: start, lte: end } },
-      });
-      const isLast = i === keys.length - 1;
-      const label = monthKeyShortLabel(k) + (isLast && isCurrentMonth ? " (MTD)" : "");
-      return { monthKey: k, label, totalCents: result._sum.amountCents ?? 0 };
-    })
-  );
+  const [rows, creditCardPayments] = await Promise.all([
+    prisma.transaction.findMany({
+      where: {
+        accountId: { in: accountIds },
+        type: "EXPENSE",
+        transferPairId: null,
+        date: { gte: windowStart, lte: windowEnd },
+      },
+      select: { description: true, amountCents: true, date: true },
+    }),
+    getTaggedDescriptionSet(["CREDIT_CARD"]),
+  ]);
+
+  const byMonth = new Map<string, number>();
+  for (const row of rows) {
+    if (creditCardPayments.has(normalizeDescriptionKey(row.description))) continue;
+    const k = monthKey(row.date);
+    byMonth.set(k, (byMonth.get(k) ?? 0) + row.amountCents);
+  }
+
+  const isCurrentMonth = mk === currentMonthKey();
+  return keys.map((k, i) => {
+    const isLast = i === keys.length - 1;
+    const label = monthKeyShortLabel(k) + (isLast && isCurrentMonth ? " (MTD)" : "");
+    return { monthKey: k, label, totalCents: byMonth.get(k) ?? 0 };
+  });
 }
 
 export interface AnomalyItem {
