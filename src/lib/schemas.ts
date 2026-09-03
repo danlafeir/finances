@@ -78,7 +78,27 @@ export const TaxReturnSummaryInput = z.object({
   ordinaryDividendsCents: z.number().int().nonnegative().optional().nullable(),
   qualifiedDividendsCents: z.number().int().nonnegative().optional().nullable(),
   capitalGainCents: z.number().int().optional().nullable(),
+
+  shortTermCapitalGainCents: z.number().int().optional().nullable(),
+  longTermCapitalGainCents: z.number().int().optional().nullable(),
+  capitalLossCarryoverCents: z.number().int().nonnegative().optional().nullable(),
+
+  deductionCents: z.number().int().nonnegative().optional().nullable(),
+  itemizedDeductionsCents: z.number().int().nonnegative().optional().nullable(),
+  saltDeductionCents: z.number().int().nonnegative().optional().nullable(),
   mortgageInterestDeductionCents: z.number().int().nonnegative().optional().nullable(),
+  qbiDeductionCents: z.number().int().nonnegative().optional().nullable(),
+
+  iraDeductionCents: z.number().int().nonnegative().optional().nullable(),
+  hsaDeductionCents: z.number().int().nonnegative().optional().nullable(),
+
+  amtiCents: z.number().int().nonnegative().optional().nullable(),
+  tentativeMinimumTaxCents: z.number().int().nonnegative().optional().nullable(),
+  amtCents: z.number().int().nonnegative().optional().nullable(),
+  additionalMedicareTaxCents: z.number().int().nonnegative().optional().nullable(),
+  netInvestmentIncomeTaxCents: z.number().int().nonnegative().optional().nullable(),
+  estimatedTaxPenaltyCents: z.number().int().nonnegative().optional().nullable(),
+
   notes: z.string().optional().nullable(),
 });
 
