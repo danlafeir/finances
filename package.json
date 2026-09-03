@@ -45,5 +45,11 @@
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "mysql2": "^3.24.3",
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.0",
+    "deepmerge-ts": "^8.0.0"
   }
 }
