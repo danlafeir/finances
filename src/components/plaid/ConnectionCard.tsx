@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RemoveConnectionButton } from "@/components/plaid/RemoveConnectionButton";
 import { SyncNowButton } from "@/components/plaid/SyncNowButton";
+import { ReconnectButton } from "@/components/plaid/ReconnectButton";
+import { AddAccountsButton } from "@/components/plaid/AddAccountsButton";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
 import type { PlaidConnection, Account } from "@/generated/prisma/client";
 
@@ -58,9 +60,16 @@ export function ConnectionCard({ connection }: ConnectionCardProps) {
             ? `Last synced ${new Date(connection.lastSyncedAt).toLocaleString()}`
             : "Never synced"}
         </p>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 flex-wrap">
           <RemoveConnectionButton id={connection.id} institutionName={connection.institutionName} />
-          <SyncNowButton connectionId={connection.id} />
+          {connection.status === "LOGIN_REQUIRED" ? (
+            <ReconnectButton connectionId={connection.id} />
+          ) : (
+            <>
+              <AddAccountsButton connectionId={connection.id} institutionName={connection.institutionName} />
+              <SyncNowButton connectionId={connection.id} />
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

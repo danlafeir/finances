@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { Pencil, Upload, Plus } from "lucide-react";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { AddSnapshotButton } from "@/components/accounts/AddSnapshotButton";
+import { UnlinkAccountButton } from "@/components/plaid/UnlinkAccountButton";
 import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
@@ -139,6 +140,7 @@ export default async function AccountDetailPage({
             )}
             <h1 className="text-2xl font-semibold">{account.name}</h1>
             <Badge variant="secondary">{ACCOUNT_TYPE_LABEL[account.type] ?? account.type}</Badge>
+            {account.plaidConnectionId && <Badge variant="outline">Synced via Plaid</Badge>}
           </div>
           <p className="text-3xl font-bold tabular-nums">{formatCents(account.balanceCents)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -149,6 +151,7 @@ export default async function AccountDetailPage({
           </p>
         </div>
         <div className="flex gap-2">
+          {account.plaidConnectionId && <UnlinkAccountButton accountId={id} accountName={account.name} />}
           {!isMortgage && <AddSnapshotButton account={account} />}
           <Link
             href={`/accounts/${id}/edit`}
@@ -423,7 +426,7 @@ export default async function AccountDetailPage({
         <>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-medium">Recent Transactions</h2>
-            {(account.type === "CHECKING" || account.type === "CREDIT_CARD") && (
+            {(account.type === "CHECKING" || account.type === "CREDIT_CARD") && !account.plaidConnectionId && (
               <Link
                 href={`/accounts/${id}/import`}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

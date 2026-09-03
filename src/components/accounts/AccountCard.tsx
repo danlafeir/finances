@@ -40,6 +40,7 @@ export function AccountCard({ account }: AccountCardProps) {
             </div>
             <p className="text-xs text-muted-foreground/70 mt-0.5 ml-5 h-4">
               {account.broker ?? ""}
+              {account.plaidConnectionId && (account.broker ? " · Synced via Plaid" : "Synced via Plaid")}
             </p>
           </div>
         </CardHeader>

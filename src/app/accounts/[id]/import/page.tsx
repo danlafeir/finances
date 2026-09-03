@@ -16,7 +16,11 @@ export default async function AccountImportPage({
 
   const account = await prisma.account.findUnique({ where: { id } });
 
-  if (!account || (account.type !== "CHECKING" && account.type !== "CREDIT_CARD")) {
+  if (
+    !account ||
+    (account.type !== "CHECKING" && account.type !== "CREDIT_CARD") ||
+    account.plaidConnectionId
+  ) {
     notFound();
   }
 

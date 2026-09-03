@@ -64,10 +64,15 @@ export async function exchangePublicToken(data: z.infer<typeof ExchangeSchema>) 
   return { connectionId: connection.id, plaidAccounts };
 }
 
-export async function createUpdateModeLinkToken(connectionId: string): Promise<string> {
+export async function createUpdateModeLinkToken(
+  connectionId: string,
+  options?: { forAddingAccounts?: boolean }
+): Promise<string> {
   const connection = await prisma.plaidConnection.findUniqueOrThrow({ where: { id: connectionId } });
   const accessToken = decrypt(connection.accessTokenCiphertext);
-  return plaidCreateUpdateModeLinkToken(accessToken);
+  return plaidCreateUpdateModeLinkToken(accessToken, {
+    accountSelectionEnabled: options?.forAddingAccounts,
+  });
 }
 
 export async function completeReconnect(connectionId: string) {
@@ -76,6 +81,30 @@ export async function completeReconnect(connectionId: string) {
     data: { status: "ACTIVE", lastSyncError: null },
   });
   revalidatePath("/connections");
+}
+
+// After update-mode Link with account selection enabled, Plaid returns every
+// currently-selected account (old + newly added) — filter down to ones not
+// already mapped to an app Account so the mapping dialog only shows new ones.
+export async function getNewPlaidAccountsForMapping(connectionId: string): Promise<PlaidAccountForMapping[]> {
+  const connection = await prisma.plaidConnection.findUniqueOrThrow({
+    where: { id: connectionId },
+    include: { accounts: { select: { plaidAccountId: true } } },
+  });
+  const accessToken = decrypt(connection.accessTokenCiphertext);
+  const alreadyMapped = new Set(connection.accounts.map((a) => a.plaidAccountId));
+
+  const rawAccounts = await getAccountsForItem(accessToken);
+  return rawAccounts
+    .filter((a) => !alreadyMapped.has(a.account_id))
+    .map((a) => ({
+      plaidAccountId: a.account_id,
+      name: a.name,
+      mask: a.mask,
+      officialName: a.official_name,
+      currentBalanceCents: a.balances.current != null ? Math.round(a.balances.current * 100) : null,
+      suggestion: suggestAccountType(a.type, a.subtype),
+    }));
 }
 
 export async function removeConnection(connectionId: string) {

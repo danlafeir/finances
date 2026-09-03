@@ -49,13 +49,19 @@ export async function createLinkToken(ownerName: string): Promise<string> {
   return res.data.link_token;
 }
 
-export async function createUpdateModeLinkToken(accessToken: string): Promise<string> {
+export async function createUpdateModeLinkToken(
+  accessToken: string,
+  options?: { accountSelectionEnabled?: boolean }
+): Promise<string> {
   const res = await getClient().linkTokenCreate({
     client_name: "Finances",
     language: "en",
     country_codes: [CountryCode.Us],
     user: { client_user_id: "update-mode" },
     access_token: accessToken,
+    ...(options?.accountSelectionEnabled
+      ? { update: { account_selection_enabled: true } }
+      : {}),
   });
   return res.data.link_token;
 }

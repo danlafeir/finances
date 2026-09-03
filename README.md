@@ -1,6 +1,6 @@
 # Finances
 
-A personal finance tracker built with Next.js, Prisma, and SQLite. Track accounts, balances, investments, and spending in one place — no third-party data sync required.
+A personal finance tracker built with Next.js, Prisma, and SQLite. Track accounts, balances, investments, and spending in one place, either by hand or synced automatically from your bank/brokerage via Plaid.
 
 ---
 
@@ -19,15 +19,29 @@ cp .env.example .env
 Edit `.env`:
 
 ```
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="file:./dev.db"
 PRICE_TTL_MINUTES=60
+
+PLAID_CLIENT_ID=op://Private/Finances-Plaid/client_id
+PLAID_SECRET=op://Private/Finances-Plaid/secret
+PLAID_ENV=sandbox
+ENCRYPTION_KEY=op://Private/Finances-Plaid/encryption_key
 ```
 
 `DATABASE_URL` points at a local SQLite file via libSQL. `PRICE_TTL_MINUTES` controls how long stock/ETF price lookups are cached before re-fetching from Yahoo Finance (default 60 is fine).
 
+The Plaid and encryption values are [1Password secret references](https://developer.1password.com/docs/cli/secret-references/), resolved at launch by `op run` (already wired into the `dev`/`build`/`start` scripts — see below) rather than sitting in `.env` as plaintext. To set this up:
+
+1. Create a Plaid developer account at [dashboard.plaid.com](https://dashboard.plaid.com) and grab your `client_id` and Sandbox `secret`.
+2. Generate an encryption key: `openssl rand -base64 32`.
+3. In 1Password, create an item named `Finances-Plaid` (any vault) with three fields: `client_id`, `secret`, `encryption_key`, filled in with the values above.
+4. Adjust the vault segment in `.env` (`Private` by default) if your item lives elsewhere.
+
+`op run` will prompt you to unlock 1Password the first time it needs a secret in a given session.
+
 ```bash
-# Push the schema to the database (creates the SQLite file on first run)
-npx prisma db push
+# Apply migrations (creates the SQLite file on first run)
+npx prisma migrate dev
 
 # Generate the Prisma client
 npx prisma generate
@@ -38,7 +52,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-> **Re-running after schema changes:** use `npx prisma db push --accept-data-loss` followed by `npx prisma generate`, then restart the dev server to pick up the new client.
+> **Re-running after schema changes:** edit `prisma/schema.prisma`, then `npx prisma migrate dev --name <description>` followed by `npx prisma generate`, then restart the dev server to pick up the new client. This project uses tracked migrations (`prisma/migrations/`), not `db push`.
 
 ---
 
@@ -48,7 +62,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 The dashboard gives a high-level snapshot of your financial picture:
 
-- **Net Worth** — total assets (cash accounts + home value + investment holdings) minus liabilities. Off-balance-sheet accounts (529, stock plans) are excluded.
+- **Net Worth** — total assets (cash, checking, HSA, and brokerage account balances, plus home value) minus liabilities. Off-balance-sheet accounts (529, stock plans) are excluded. The Investments figure shown alongside is a breakdown of what's inside those balances (by ticker), not an addition to the total.
 - **Liquid Cash** — sum of all checking and high-yield savings accounts.
 - **Total Investments** — sum of qualified brokerage, taxable brokerage, and HSA accounts.
 
@@ -107,6 +121,17 @@ Checking and credit card accounts have an "Import Transactions" button on their 
 2. Lets you review and confirm the mapping before importing.
 3. Deduplicates by a SHA-256 hash of `accountId|date|description|amountCents` — re-importing the same file is safe.
 
+### Connections
+
+Links accounts to a bank or brokerage via [Plaid](https://plaid.com) instead of manual entry/CSV import. A **connection** is one Plaid login ("Item") at an institution — since one login can expose several accounts, and since two people can each have their own login at the same institution, a connection is a separate object from an `Account` and can map to multiple accounts.
+
+- **Connecting** — pick an owner label (just a name tag, e.g. "Dan" — not an app login; the app itself has no authentication), authenticate with the institution through Plaid Link, then map each account Plaid found to either a new or an existing `Account`. A suggested account type is pre-filled based on Plaid's account subtype but always requires confirmation — Plaid can't reliably distinguish, say, a qualified vs. taxable brokerage on its own. Loan-type accounts (mortgages, auto loans, etc.) aren't supported for sync yet.
+- **Sync Now** — pulls current balances, new/changed/removed transactions, and investment holdings for a connection (or every connection at once). There's no live webhook — sync is on-demand only. Balances write through the same snapshot mechanism as a manual "Add Snapshot." Holdings synced from Plaid are tagged separately from manually-entered ones and never overwrite them.
+- **Reconnecting** — if Plaid reports a login issue, the connection shows "Needs reconnect" and a Reconnect button that re-opens Plaid Link to restore access without re-mapping accounts.
+- **Unlinking** — remove a single account's Plaid link (falls back to manual tracking, keeps its history) or remove the whole connection (keeps every linked account and its history, just stops syncing).
+
+A Plaid-linked CHECKING/CREDIT_CARD account's CSV import entry point is hidden, since sync already brings in its transactions — manually adding a balance snapshot is still available if you ever want to record a value between syncs.
+
 ### Spending
 
 Tracks recurring charges and unusual activity across checking and credit card accounts, filterable by account and month. Checking and Credit Card accounts get their own section, each with:
@@ -129,3 +154,5 @@ Tracks recurring charges and unusual activity across checking and credit card ac
 | UI | shadcn/ui on `@base-ui/react` |
 | Charts | Recharts |
 | Prices | Yahoo Finance (`yahoo-finance2`) |
+| Bank/brokerage sync | Plaid (`plaid`, `react-plaid-link`) |
+| Secrets | 1Password CLI (`op run`) |
