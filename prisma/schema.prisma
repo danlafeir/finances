@@ -226,6 +226,17 @@ model VendorLabel {
   updatedAt   DateTime  @updatedAt
 }
 
+// A user override saying a description that the recurring-detection heuristic
+// flagged is not actually a recurring charge (e.g. two coincidental one-off
+// payments to the same payee). Keyed on the same normalizeDescriptionKey()
+// value as VendorLabel, so it stays matched across months regardless of a
+// per-transaction reference code.
+model IgnoredRecurringCharge {
+  id          String   @id @default(cuid())
+  description String   @unique
+  createdAt   DateTime @default(now())
+}
+
 model PriceSnapshot {
   id         String   @id @default(cuid())
   ticker     String   @unique

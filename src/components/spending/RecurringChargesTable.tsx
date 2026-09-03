@@ -46,7 +46,7 @@ export function RecurringChargesTable({ items }: RecurringChargesTableProps) {
   }
 
   const monthlyTotal = items
-    .filter((i) => i.frequency === "Monthly")
+    .filter((i) => i.frequency === "Monthly" && i.tag !== "INVESTMENT")
     .reduce((s, i) => s + i.cents, 0);
   const annualTotal = items
     .filter((i) => i.frequency === "Annual")

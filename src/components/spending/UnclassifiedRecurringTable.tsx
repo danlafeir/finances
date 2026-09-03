@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatCents } from "@/lib/money";
 import { monthKey, monthKeyLabel } from "@/lib/dates";
+import { ignoreRecurringCharge } from "@/actions/recurringOverrides";
 import { VendorLabelForm } from "./VendorLabelForm";
 
 export interface UnclassifiedRecurringItem {
@@ -20,7 +22,14 @@ interface UnclassifiedRecurringTableProps {
 }
 
 export function UnclassifiedRecurringTable({ items }: UnclassifiedRecurringTableProps) {
+  const router = useRouter();
   const [labelingItem, setLabelingItem] = useState<UnclassifiedRecurringItem | null>(null);
+
+  async function handleNotRecurring(description: string) {
+    if (!confirm("Mark as not recurring? It won't be detected as a recurring charge again.")) return;
+    await ignoreRecurringCharge(description);
+    router.refresh();
+  }
 
   if (items.length === 0) {
     return (
@@ -56,9 +65,19 @@ export function UnclassifiedRecurringTable({ items }: UnclassifiedRecurringTable
                 {monthKeyLabel(monthKey(item.lastDate))}
               </td>
               <td className="py-2 px-3 text-right">
-                <Button size="sm" variant="outline" onClick={() => setLabelingItem(item)}>
-                  Label
-                </Button>
+                <div className="flex justify-end gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    onClick={() => handleNotRecurring(item.description)}
+                  >
+                    Not Recurring
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setLabelingItem(item)}>
+                    Label
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}

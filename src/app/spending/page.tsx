@@ -5,6 +5,7 @@ import { AccountFilter } from "@/components/spending/AccountFilter";
 import { MonthlySpendingChart } from "@/components/spending/MonthlySpendingChart";
 import { RecurringChargesTable, type LabeledRecurringItem } from "@/components/spending/RecurringChargesTable";
 import { UnclassifiedRecurringTable, type UnclassifiedRecurringItem } from "@/components/spending/UnclassifiedRecurringTable";
+import { IgnoredRecurringList } from "@/components/spending/IgnoredRecurringList";
 import {
   getSpendingAccounts,
   getSpendingSummary,
@@ -14,6 +15,7 @@ import {
   getMonthlySpendingTrend,
 } from "@/actions/spending";
 import { getAllVendorLabels } from "@/actions/vendorLabels";
+import { getIgnoredRecurringCharges } from "@/actions/recurringOverrides";
 import { formatCents } from "@/lib/money";
 import { currentMonthKey } from "@/lib/dates";
 
@@ -34,20 +36,28 @@ export default async function SpendingPage({ searchParams }: PageProps) {
       ? [accountFilter]
       : spendingAccounts.map((a) => a.id);
 
-  const [summary, recurring, annual, anomalies, trend, vendorLabels] = await Promise.all([
+  const [summary, recurring, annual, anomalies, trend, vendorLabels, ignoredCharges] = await Promise.all([
     getSpendingSummary(currentMonth, accountIds),
     getRecurringTransactions(currentMonth, accountIds),
     getAnnualRecurringTransactions(currentMonth, accountIds),
     getAnomalousDescriptions(currentMonth, accountIds),
     getMonthlySpendingTrend(currentMonth, accountIds),
     getAllVendorLabels(),
+    getIgnoredRecurringCharges(),
   ]);
 
-  const recurringTotal = recurring.reduce((s, r) => s + r.monthlyCostCents, 0);
+  const labelMap = new Map(vendorLabels.map((v) => [v.description, v]));
+
+  // Investment transfers (e.g. a periodic IRA/brokerage contribution) are savings,
+  // not spending — keep them visible in the Recurring Charges table but leave them
+  // out of the "recurring monthly expenses" totals.
+  const recurringExcludingInvestments = recurring.filter(
+    (r) => labelMap.get(r.description)?.tag !== "INVESTMENT"
+  );
+  const recurringTotal = recurringExcludingInvestments.reduce((s, r) => s + r.monthlyCostCents, 0);
 
   const monthlySet = new Set(recurring.map((r) => r.description));
   const annualDeduped = annual.filter((a) => !monthlySet.has(a.description));
-  const labelMap = new Map(vendorLabels.map((v) => [v.description, v]));
 
   const combined = [
     ...recurring.map((r) => ({
@@ -125,8 +135,8 @@ export default async function SpendingPage({ searchParams }: PageProps) {
                   {formatCents(recurringTotal)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {recurring.length} recurring charge
-                  {recurring.length !== 1 ? "s" : ""}
+                  {recurringExcludingInvestments.length} recurring charge
+                  {recurringExcludingInvestments.length !== 1 ? "s" : ""}
                 </p>
               </CardContent>
             </Card>
@@ -198,6 +208,8 @@ export default async function SpendingPage({ searchParams }: PageProps) {
               <UnclassifiedRecurringTable items={unclassifiedItems} />
             </CardContent>
           </Card>
+
+          <IgnoredRecurringList descriptions={ignoredCharges.map((i) => i.description)} />
         </>
       )}
     </div>

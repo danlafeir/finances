@@ -33,6 +33,11 @@ export async function getSpendingSummary(
   };
 }
 
+async function getIgnoredDescriptionSet(): Promise<Set<string>> {
+  const ignored = await prisma.ignoredRecurringCharge.findMany({ select: { description: true } });
+  return new Set(ignored.map((i) => i.description));
+}
+
 export interface RecurringItem {
   description: string;
   monthlyCostCents: number;
@@ -48,6 +53,7 @@ export async function getRecurringTransactions(
   const m0 = prevMonthKey(prevMonthKey(mk));
   const windowStart = monthRange(m0).start;
   const windowEnd = monthRange(mk).end;
+  const ignored = await getIgnoredDescriptionSet();
 
   const rows = await prisma.transaction.findMany({
     where: {
@@ -71,7 +77,7 @@ export async function getRecurringTransactions(
   }
 
   return Array.from(byDesc.entries())
-    .filter(([, v]) => v.monthKeys.size >= 2)
+    .filter(([description, v]) => v.monthKeys.size >= 2 && !ignored.has(description))
     .map(([description, v]) => ({
       description,
       monthlyCostCents: v.latestCents,
@@ -95,6 +101,7 @@ export async function getAnnualRecurringTransactions(
   if (accountIds.length === 0) return [];
   const windowStart = monthRange(shiftMonthKeyYears(mk, -2)).start;
   const windowEnd = monthRange(mk).end;
+  const ignored = await getIgnoredDescriptionSet();
 
   const rows = await prisma.transaction.findMany({
     where: {
@@ -134,6 +141,7 @@ export async function getAnnualRecurringTransactions(
 
   const results: AnnualRecurringItem[] = [];
   for (const [description, entry] of byDesc.entries()) {
+    if (ignored.has(description)) continue;
     let best: MonthOfYearStats | null = null;
     for (const stats of entry.byMonthOfYear.values()) {
       if (!best || stats.years.size > best.years.size) best = stats;
