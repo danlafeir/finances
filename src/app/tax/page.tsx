@@ -61,10 +61,7 @@ export default async function TaxPage({ searchParams }: PageProps) {
         ).toFixed(1)}%`
       : null;
 
-  const untrackedGainsCents =
-    overview.hasReturn && overview.trackedCapitalGainsCents === 0 && overview.returnCapitalGainCents
-      ? overview.returnCapitalGainCents
-      : null;
+  const untrackedGainsCents = overview.unattributedCapitalGainCents;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">

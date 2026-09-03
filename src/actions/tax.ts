@@ -182,23 +182,42 @@ export async function getTaxOverview(taxYear: number) {
     ? returnSummary!.qualifiedDividendsCents ?? 0
     : tracked.qualifiedDividendsCents;
 
-  // Capital gains can only be split into short-term (ordinary-rate) vs long-term
-  // (preferential-rate) using per-account TaxRecord data (1099-B) — a filed return
-  // only carries one net, post-$3,000-loss-limitation figure (Line 7), which is
-  // exposed separately as returnCapitalGainCents rather than guessed into either
-  // bucket here. Tracked gains are included whenever present, whether or not a
-  // return also exists, since that per-document detail remains valid either way.
+  const trackedCapitalGainsCents =
+    tracked.shortTermCapitalGainCents + tracked.longTermCapitalGainCents + tracked.capitalGainDistributionsCents;
+
+  // A filed return can now carry its own Schedule D short/long-term split (lines 7
+  // and 15) — when present, that household total is authoritative and tracked
+  // per-account sums must NOT also be added, or gains already folded into the
+  // return get counted twice. Tracked sums are only used as the split when there's
+  // no return, or as a fallback when the return exists but didn't record its own
+  // split (e.g. entered before this feature, or the AI tool couldn't find Schedule D).
+  const returnHasGainSplit =
+    hasReturn &&
+    (returnSummary!.shortTermCapitalGainCents != null || returnSummary!.longTermCapitalGainCents != null);
+
+  const shortTermCapitalGainCents = returnHasGainSplit
+    ? returnSummary!.shortTermCapitalGainCents ?? 0
+    : tracked.shortTermCapitalGainCents;
+  const longTermCapitalGainCents = returnHasGainSplit
+    ? returnSummary!.longTermCapitalGainCents ?? 0
+    : tracked.longTermCapitalGainCents + tracked.capitalGainDistributionsCents;
+
+  // If a return exists, has no ST/LT split, and no tracked account fills the gap
+  // either, the return's net capital gain (Line 7) can't be attributed to either
+  // bucket — surface it separately rather than silently dropping or misbucketing it.
+  const unattributedCapitalGainCents =
+    hasReturn && !returnHasGainSplit && trackedCapitalGainsCents === 0 ? returnSummary!.capitalGainCents ?? null : null;
+
   return {
     hasReturn,
     ordinaryIncomeCents:
-      taxableInterestCents + (ordinaryDividendsCents - qualifiedDividendsCents) + tracked.shortTermCapitalGainCents,
-    preferentialIncomeCents:
-      qualifiedDividendsCents + tracked.capitalGainDistributionsCents + tracked.longTermCapitalGainCents,
+      taxableInterestCents + (ordinaryDividendsCents - qualifiedDividendsCents) + shortTermCapitalGainCents,
+    preferentialIncomeCents: qualifiedDividendsCents + longTermCapitalGainCents,
     mortgageInterestPaidCents: tracked.mortgageInterestPaidCents,
     paymentsCents: hasReturn ? returnSummary!.totalPaymentsCents ?? 0 : tracked.federalTaxWithheldCents,
-    trackedCapitalGainsCents:
-      tracked.shortTermCapitalGainCents + tracked.longTermCapitalGainCents + tracked.capitalGainDistributionsCents,
+    trackedCapitalGainsCents,
     returnCapitalGainCents: returnSummary?.capitalGainCents ?? null,
+    unattributedCapitalGainCents,
   };
 }
 
@@ -271,6 +290,16 @@ export async function getTaxReconciliation(taxYear: number) {
   const rows: TaxReconciliationRow[] = [
     reconcileRow("Taxable Interest", returnSummary.taxableInterestCents, tracked.interestIncomeCents),
     reconcileRow("Ordinary Dividends", returnSummary.ordinaryDividendsCents, tracked.ordinaryDividendsCents),
+    reconcileRow(
+      "Short-Term Capital Gain/Loss",
+      returnSummary.shortTermCapitalGainCents,
+      tracked.shortTermCapitalGainCents
+    ),
+    reconcileRow(
+      "Long-Term Capital Gain/Loss",
+      returnSummary.longTermCapitalGainCents,
+      tracked.longTermCapitalGainCents + tracked.capitalGainDistributionsCents
+    ),
     reconcileRow(
       "Mortgage Interest Deduction",
       returnSummary.mortgageInterestDeductionCents,
