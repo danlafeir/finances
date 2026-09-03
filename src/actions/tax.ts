@@ -213,6 +213,8 @@ export async function getTaxOverview(taxYear: number) {
     ordinaryIncomeCents:
       taxableInterestCents + (ordinaryDividendsCents - qualifiedDividendsCents) + shortTermCapitalGainCents,
     preferentialIncomeCents: qualifiedDividendsCents + longTermCapitalGainCents,
+    shortTermCapitalGainCents,
+    longTermCapitalGainCents,
     mortgageInterestPaidCents: tracked.mortgageInterestPaidCents,
     paymentsCents: hasReturn ? returnSummary!.totalPaymentsCents ?? 0 : tracked.federalTaxWithheldCents,
     trackedCapitalGainsCents,
@@ -270,9 +272,23 @@ export interface TaxReconciliationRow {
 // declared.
 const RECONCILIATION_TOLERANCE_CENTS = 100;
 
-function reconcileRow(label: string, reportedCents: number | null, trackedCents: number): TaxReconciliationRow {
+function reconcileRow(
+  label: string,
+  reportedCents: number | null,
+  trackedCents: number,
+  options: { signed?: boolean } = {}
+): TaxReconciliationRow {
   if (reportedCents == null) {
     return { label, reportedCents: null, trackedCents, status: "no-return-data" };
+  }
+  // Signed figures (capital gains/losses) can't use the exceeds check below: unlike
+  // interest or dividends, tracked is not bounded above by reported — the untracked
+  // remainder (reported - tracked) can itself be arbitrarily positive or negative,
+  // so "tracked > reported" is a routine, expected state (e.g. no gain accounts
+  // entered at all against a return showing a net loss), not a duplicate/wrong-year
+  // anomaly. Only report the gap, never flag it as impossible.
+  if (options.signed) {
+    return { label, reportedCents, trackedCents, status: "coverage" };
   }
   const status: TaxReconciliationRow["status"] =
     trackedCents > reportedCents + RECONCILIATION_TOLERANCE_CENTS ? "exceeds" : "coverage";
@@ -293,12 +309,14 @@ export async function getTaxReconciliation(taxYear: number) {
     reconcileRow(
       "Short-Term Capital Gain/Loss",
       returnSummary.shortTermCapitalGainCents,
-      tracked.shortTermCapitalGainCents
+      tracked.shortTermCapitalGainCents,
+      { signed: true }
     ),
     reconcileRow(
       "Long-Term Capital Gain/Loss",
       returnSummary.longTermCapitalGainCents,
-      tracked.longTermCapitalGainCents + tracked.capitalGainDistributionsCents
+      tracked.longTermCapitalGainCents + tracked.capitalGainDistributionsCents,
+      { signed: true }
     ),
     reconcileRow(
       "Mortgage Interest Deduction",

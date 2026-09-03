@@ -3,8 +3,10 @@ import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { TaxYearPicker } from "@/components/tax/TaxYearPicker";
 import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
+import { CapitalGainsChart } from "@/components/tax/CapitalGainsChart";
 import {
   getTaxYearsWithData,
   getTaxRecords,
@@ -13,12 +15,39 @@ import {
 } from "@/actions/tax";
 import { formatCents } from "@/lib/money";
 import { TAX_FORM_LABEL } from "@/lib/tax/forms";
-import { Pencil, AlertTriangle } from "lucide-react";
+import { Pencil, AlertTriangle, PiggyBank } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TaxRecord } from "@/generated/prisma/client";
 
 interface PageProps {
   searchParams: Promise<{ year?: string }>;
+}
+
+const SALT_CAP_CENTS = 1_000_000; // $10,000 — Schedule A line 5e cap
+
+function ComparisonBar({
+  label,
+  cents,
+  maxCents,
+  colorClass,
+}: {
+  label: string;
+  cents: number;
+  maxCents: number;
+  colorClass: string;
+}) {
+  const pct = maxCents > 0 ? Math.min(100, (cents / maxCents) * 100) : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium tabular-nums">{formatCents(cents)}</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div className={cn("h-full rounded-full", colorClass)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
 }
 
 function keyAmountCents(record: TaxRecord): number {
@@ -153,6 +182,27 @@ export default async function TaxPage({ searchParams }: PageProps) {
         </Card>
       </div>
 
+      {(overview.shortTermCapitalGainCents !== 0 || overview.longTermCapitalGainCents !== 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-muted-foreground font-normal">
+              Capital Gains: Short-Term vs. Long-Term
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CapitalGainsChart
+              shortTermCents={overview.shortTermCapitalGainCents}
+              longTermCents={overview.longTermCapitalGainCents}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              Short-term gains are taxed at your ordinary rate; long-term gains get preferential
+              capital-gains rates — realizing gains after the one-year mark can meaningfully lower
+              the tax on them.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-medium">Filed Return ({currentYear})</h2>
@@ -169,7 +219,21 @@ export default async function TaxPage({ searchParams }: PageProps) {
             No filed return on record for {currentYear}. Add one to see AGI, total tax, and how
             it compares to the tax data you&apos;ve entered.
           </p>
-        ) : (
+        ) : (() => {
+          const rs = reconciliation.returnSummary;
+          const hasDeductionCompare = rs.deductionCents != null || rs.itemizedDeductionsCents != null;
+          const deductionMax = Math.max(rs.deductionCents ?? 0, rs.itemizedDeductionsCents ?? 0, 1);
+          const hasAmtOrSurtax =
+            rs.amtiCents != null ||
+            rs.tentativeMinimumTaxCents != null ||
+            rs.amtCents != null ||
+            rs.additionalMedicareTaxCents != null ||
+            rs.netInvestmentIncomeTaxCents != null ||
+            rs.estimatedTaxPenaltyCents != null;
+          const hasOtherDeductions =
+            rs.qbiDeductionCents != null || rs.iraDeductionCents != null || rs.hsaDeductionCents != null;
+
+          return (
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-4 text-sm border rounded-lg p-4">
               <div>
@@ -220,6 +284,162 @@ export default async function TaxPage({ searchParams }: PageProps) {
               )}
             </div>
 
+            {hasDeductionCompare && (
+              <div className="border rounded-lg p-4 space-y-3">
+                <p className="text-sm font-medium">Standard vs. Itemized Deductions</p>
+                {rs.deductionCents != null && (
+                  <ComparisonBar
+                    label="Deduction Taken (Line 12)"
+                    cents={rs.deductionCents}
+                    maxCents={deductionMax}
+                    colorClass="bg-primary"
+                  />
+                )}
+                {rs.itemizedDeductionsCents != null && (
+                  <ComparisonBar
+                    label="Itemized Total (Schedule A, Line 17)"
+                    cents={rs.itemizedDeductionsCents}
+                    maxCents={deductionMax}
+                    colorClass="bg-indigo-500"
+                  />
+                )}
+                {rs.deductionCents != null && rs.itemizedDeductionsCents != null && (
+                  <p className="text-xs text-muted-foreground">
+                    {rs.deductionCents > rs.itemizedDeductionsCents
+                      ? `You took the standard deduction — itemizing would have given you ${formatCents(
+                          rs.deductionCents - rs.itemizedDeductionsCents
+                        )} less.`
+                      : rs.deductionCents < rs.itemizedDeductionsCents
+                        ? `You itemized — that's ${formatCents(
+                            rs.itemizedDeductionsCents - rs.deductionCents
+                          )} more than the standard deduction would have given you.`
+                        : "Your deduction matches your itemized total exactly."}
+                  </p>
+                )}
+                {rs.saltDeductionCents != null && (
+                  <div className="pt-1 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>SALT deduction (Schedule A, Line 5e)</span>
+                      <span className="tabular-nums">
+                        {formatCents(rs.saltDeductionCents)} of {formatCents(SALT_CAP_CENTS)} cap
+                      </span>
+                    </div>
+                    <Progress value={Math.min(100, (rs.saltDeductionCents / SALT_CAP_CENTS) * 100)} />
+                    {rs.saltDeductionCents >= SALT_CAP_CENTS && (
+                      <p className="text-xs text-amber-600 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        You hit the $10,000 SALT cap — any additional state/local tax paid bought
+                        you nothing federally
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {hasOtherDeductions && (
+              <div className="border rounded-lg p-4">
+                <p className="text-sm font-medium mb-3">Other Deductions</p>
+                <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  {rs.qbiDeductionCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">
+                        Qualified Business Income (Line 13)
+                      </p>
+                      <p className="font-semibold tabular-nums">{formatCents(rs.qbiDeductionCents)}</p>
+                    </div>
+                  )}
+                  {rs.iraDeductionCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">IRA Deduction (Sch. 1, Line 20)</p>
+                      <p className="font-semibold tabular-nums">{formatCents(rs.iraDeductionCents)}</p>
+                    </div>
+                  )}
+                  {rs.hsaDeductionCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">HSA Deduction (Sch. 1, Line 13)</p>
+                      <p className="font-semibold tabular-nums">{formatCents(rs.hsaDeductionCents)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {hasAmtOrSurtax && (
+              <div className="border rounded-lg p-4">
+                <p className="text-sm font-medium mb-3">AMT &amp; Additional Taxes</p>
+                <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  {rs.amtiCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">AMT Taxable Income</p>
+                      <p className="font-semibold tabular-nums">{formatCents(rs.amtiCents)}</p>
+                    </div>
+                  )}
+                  {rs.tentativeMinimumTaxCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">Tentative Minimum Tax</p>
+                      <p className="font-semibold tabular-nums">
+                        {formatCents(rs.tentativeMinimumTaxCents)}
+                      </p>
+                    </div>
+                  )}
+                  {rs.amtCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">AMT Owed</p>
+                      <p
+                        className={cn(
+                          "font-semibold tabular-nums",
+                          rs.amtCents > 0 && "text-amber-600"
+                        )}
+                      >
+                        {formatCents(rs.amtCents)}
+                      </p>
+                    </div>
+                  )}
+                  {rs.additionalMedicareTaxCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">Additional Medicare Tax</p>
+                      <p className="font-semibold tabular-nums">
+                        {formatCents(rs.additionalMedicareTaxCents)}
+                      </p>
+                    </div>
+                  )}
+                  {rs.netInvestmentIncomeTaxCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">Net Investment Income Tax</p>
+                      <p className="font-semibold tabular-nums">
+                        {formatCents(rs.netInvestmentIncomeTaxCents)}
+                      </p>
+                    </div>
+                  )}
+                  {rs.estimatedTaxPenaltyCents != null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">Underpayment Penalty</p>
+                      <p
+                        className={cn(
+                          "font-semibold tabular-nums",
+                          rs.estimatedTaxPenaltyCents > 0 && "text-destructive"
+                        )}
+                      >
+                        {formatCents(rs.estimatedTaxPenaltyCents)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {rs.capitalLossCarryoverCents != null && rs.capitalLossCarryoverCents > 0 && (
+              <div className="border border-emerald-600/30 bg-emerald-600/5 rounded-lg p-4 text-sm flex items-start gap-2">
+                <PiggyBank className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                <p>
+                  <span className="font-medium">{formatCents(rs.capitalLossCarryoverCents)}</span>{" "}
+                  in capital losses carries into {currentYear + 1} — remember to net it against
+                  future gains.
+                </p>
+              </div>
+            )}
+
             <div>
               <p className="text-sm font-medium mb-2">Tracked vs. reported on the return</p>
               <div className="border rounded-lg overflow-hidden">
@@ -259,8 +479,8 @@ export default async function TaxPage({ searchParams }: PageProps) {
                             )}
                             {row.status === "coverage" && gapCents != null && (
                               <span className="text-xs text-muted-foreground">
-                                {gapCents > 100
-                                  ? `${formatCents(gapCents)} not yet accounted for by a tracked account`
+                                {Math.abs(gapCents) > 100
+                                  ? `${formatCents(Math.abs(gapCents))} not yet accounted for by a tracked account`
                                   : "Fully accounted for"}
                               </span>
                             )}
@@ -280,7 +500,8 @@ export default async function TaxPage({ searchParams }: PageProps) {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       <div>
