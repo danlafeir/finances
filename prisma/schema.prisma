@@ -70,6 +70,18 @@ model Account {
   vestingEvents       VestingEvent[]
   mortgageDetails     MortgageDetails?
   taxRecords          TaxRecord[]
+  balanceSnapshots    AccountSnapshot[]
+}
+
+model AccountSnapshot {
+  id           String   @id @default(cuid())
+  accountId    String
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  balanceCents Int
+  asOfDate     DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([accountId, asOfDate])
 }
 
 model MortgageDetails {

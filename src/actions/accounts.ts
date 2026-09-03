@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { AccountType } from "@/generated/prisma/enums";
 import { getPrice } from "@/lib/prices/yahoo";
+import { INVESTMENT_GROWTH_TYPES } from "@/lib/accounts";
 
 const VestingEventInput = z.object({
   date: z.string().min(1),
@@ -25,6 +26,12 @@ const AccountSchema = z.object({
   interestRateBps: z.number().int().optional().nullable(),
   contributionCents: z.number().int().optional().nullable(),
   contributionFrequency: z.string().optional().nullable(),
+});
+
+const AddSnapshotSchema = z.object({
+  accountId: z.string().min(1),
+  balanceCents: z.number().int(),
+  asOfDate: z.string().min(1),
 });
 
 function signedSum(transactions: { type: string; amountCents: number }[]) {
@@ -131,6 +138,61 @@ export async function getAllAccountsWithBalances() {
       : transactions.filter((t) => t.accountId === account.id);
     return { ...account, balanceCents: account.snapshotBalanceCents + signedSum(eligible) };
   });
+}
+
+// Adds a point-in-time balance snapshot, always kept in the history table. Only
+// advances the account's "live" balance/as-of-date (the fields every balance
+// display reads) when this snapshot is the most recent one on file — a backdated
+// entry is history, not a correction to the current displayed value.
+export async function addAccountSnapshot(data: z.infer<typeof AddSnapshotSchema>) {
+  const parsed = AddSnapshotSchema.parse(data);
+  const asOfDate = new Date(parsed.asOfDate);
+
+  const account = await prisma.account.findUniqueOrThrow({ where: { id: parsed.accountId } });
+  const isLatest = !account.snapshotDate || asOfDate >= account.snapshotDate;
+
+  const snapshot = await prisma.$transaction(async (tx) => {
+    const created = await tx.accountSnapshot.create({
+      data: { accountId: parsed.accountId, balanceCents: parsed.balanceCents, asOfDate },
+    });
+    if (isLatest) {
+      await tx.account.update({
+        where: { id: parsed.accountId },
+        data: { snapshotBalanceCents: parsed.balanceCents, snapshotDate: asOfDate },
+      });
+    }
+    return created;
+  });
+
+  revalidatePath("/accounts");
+  revalidatePath(`/accounts/${parsed.accountId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/investments");
+
+  return { snapshot, updatedCurrent: isLatest };
+}
+
+export async function getAccountSnapshots(accountId: string) {
+  return prisma.accountSnapshot.findMany({
+    where: { accountId },
+    orderBy: { asOfDate: "desc" },
+  });
+}
+
+export async function getInvestmentGrowthHistory() {
+  const accounts = await prisma.account.findMany({
+    where: { type: { in: Array.from(INVESTMENT_GROWTH_TYPES) as AccountType[] } },
+    orderBy: { createdAt: "asc" },
+    include: { balanceSnapshots: { orderBy: { asOfDate: "asc" } } },
+  });
+
+  return accounts.map((a) => ({
+    id: a.id,
+    name: a.name,
+    type: a.type,
+    color: a.color,
+    points: a.balanceSnapshots.map((s) => ({ date: s.asOfDate, balanceCents: s.balanceCents })),
+  }));
 }
 
 export async function lookupTickerPrice(ticker: string): Promise<number | null> {

@@ -6,6 +6,7 @@ import { getAccountWithBalance } from "@/actions/accounts";
 import { prisma } from "@/lib/prisma";
 import { Pencil, Upload, Plus } from "lucide-react";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
+import { AddSnapshotButton } from "@/components/accounts/AddSnapshotButton";
 import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL } from "@/lib/accounts";
@@ -148,6 +149,7 @@ export default async function AccountDetailPage({
           </p>
         </div>
         <div className="flex gap-2">
+          {!isMortgage && <AddSnapshotButton account={account} />}
           <Link
             href={`/accounts/${id}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

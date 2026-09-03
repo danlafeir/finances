@@ -41,6 +41,8 @@ export const ACCOUNT_TYPE_COLOR: Record<string, string> = {
 
 export const LIABILITY_TYPES = new Set(["CREDIT_CARD", "MORTGAGE"]);
 
+export const INVESTMENT_GROWTH_TYPES = new Set(["QUALIFIED_BROKERAGE", "TAXABLE_BROKERAGE", "HSA"]);
+
 export const OFF_BALANCE_SHEET_TYPES = new Set(["COLLEGE_SAVINGS", "STOCK_PLAN"]);
 
 export const ACCOUNT_GROUPS: { label: string; subtitle?: string; types: string[] }[] = [
