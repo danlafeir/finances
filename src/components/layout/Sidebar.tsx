@@ -8,12 +8,14 @@ import {
   ShoppingCart,
   TrendingUp,
   Receipt,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Wallet },
+  { href: "/connections", label: "Connections", icon: Landmark },
   { href: "/spending", label: "Spending", icon: ShoppingCart },
   { href: "/investments", label: "Investments", icon: TrendingUp },
   { href: "/tax", label: "Tax", icon: Receipt },

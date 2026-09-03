@@ -17,7 +17,7 @@ import {
 import { createAccount, updateAccount, lookupTickerPrice } from "@/actions/accounts";
 import { saveMortgageDetails } from "@/actions/mortgage";
 import { parseDollarsToCents, centsToDisplay, formatCents } from "@/lib/money";
-import { ACCOUNT_TYPES, BROKERS, ACCOUNT_TYPE_COLOR, LIABILITY_TYPES } from "@/lib/accounts";
+import { ACCOUNT_TYPES, BROKERS, deriveAccountDefaults } from "@/lib/accounts";
 import { MortgageFields } from "@/components/accounts/MortgageFields";
 import type { Account, VestingEvent, MortgageDetails, MortgagePayment } from "@/generated/prisma/client";
 import type { MortgageData } from "@/lib/mortgage";
@@ -149,8 +149,7 @@ export function AccountForm({ account, vestingEvents: initialEvents = [], mortga
         ticker: isStockPlan ? ticker.trim().toUpperCase() || undefined : undefined,
         snapshotBalanceCents,
         snapshotDate: snapshotDateStr || null,
-        isLiability: LIABILITY_TYPES.has(accountType),
-        color: ACCOUNT_TYPE_COLOR[accountType],
+        ...deriveAccountDefaults(accountType),
         currency: "USD",
         vestingEvents: vestingEventsData,
         interestRateBps,
