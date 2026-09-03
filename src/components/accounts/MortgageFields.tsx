@@ -483,6 +483,7 @@ export function MortgageFields({ initial, onChange }: Props) {
                       {new Date(row.paymentDate).toLocaleDateString("en-US", {
                         month: "short",
                         year: "numeric",
+                        timeZone: "UTC",
                       })}
                     </td>
                     <td className="py-0.5 pr-3 text-right">{formatCents(row.paymentCents)}</td>

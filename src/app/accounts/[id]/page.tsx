@@ -102,7 +102,7 @@ export default async function AccountDetailPage({
   const scheduleInterestByYear: Record<number, number> = {};
   if (isMortgage) {
     for (const row of scheduleRows) {
-      const year = new Date(row.paymentDate).getFullYear();
+      const year = new Date(row.paymentDate).getUTCFullYear();
       scheduleInterestByYear[year] = (scheduleInterestByYear[year] ?? 0) + row.interestCents;
     }
   }
@@ -143,7 +143,7 @@ export default async function AccountDetailPage({
           <p className="text-xs text-muted-foreground mt-0.5">
             As of{" "}
             {account.snapshotDate
-              ? new Date(account.snapshotDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              ? new Date(account.snapshotDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
               : new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
         </div>
@@ -167,7 +167,7 @@ export default async function AccountDetailPage({
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Next Vesting Event</p>
                 <p className="text-lg font-semibold">
-                  {new Date(nextVest.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  {new Date(nextVest.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}
                   {" — "}
                   {nextVest.shares.toLocaleString(undefined, { maximumFractionDigits: 4 })} shares
                 </p>
@@ -249,6 +249,7 @@ export default async function AccountDetailPage({
                   {new Date(nextPayment.paymentDate).toLocaleDateString("en-US", {
                     month: "short",
                     year: "numeric",
+                    timeZone: "UTC",
                   })}
                 </p>
               </div>
@@ -387,6 +388,7 @@ export default async function AccountDetailPage({
                             {new Date(row.paymentDate).toLocaleDateString("en-US", {
                               month: "short",
                               year: "numeric",
+                              timeZone: "UTC",
                             })}
                           </td>
                           <td className="py-1.5 px-3 text-right">
@@ -443,6 +445,7 @@ export default async function AccountDetailPage({
                       {new Date(t.date).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
+                        timeZone: "UTC",
                       })}
                     </span>
                     <span className="font-medium">{t.description}</span>

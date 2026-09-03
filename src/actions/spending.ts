@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { monthKey, monthKeyShortLabel, monthRange, prevMonthKey, shiftMonthKeyYears } from "@/lib/dates";
+import { currentMonthKey, monthKey, monthKeyShortLabel, monthRange, prevMonthKey, shiftMonthKeyYears } from "@/lib/dates";
 
 export async function getSpendingAccounts() {
   return prisma.account.findMany({
@@ -168,7 +168,7 @@ export async function getMonthlySpendingTrend(
     cursor = prevMonthKey(cursor);
   }
 
-  const isCurrentMonth = mk === monthKey(new Date());
+  const isCurrentMonth = mk === currentMonthKey();
 
   return Promise.all(
     keys.map(async (k, i) => {

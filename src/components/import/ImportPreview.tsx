@@ -52,7 +52,7 @@ export function ImportPreview({ rows, onBack, onComplete }: ImportPreviewProps) 
         {rows.map((row, i) => (
           <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
             <span className="text-muted-foreground w-20 shrink-0 tabular-nums">
-              {new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              {new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
             </span>
             <span className="flex-1 min-w-0 truncate">{row.description}</span>
             <Badge

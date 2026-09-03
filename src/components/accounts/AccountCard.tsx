@@ -49,10 +49,9 @@ export function AccountCard({ account }: AccountCardProps) {
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             As of{" "}
-            {(account.snapshotDate
-              ? new Date(account.snapshotDate)
-              : new Date()
-            ).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            {account.snapshotDate
+              ? new Date(account.snapshotDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+              : new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
         </CardContent>
       </Card>

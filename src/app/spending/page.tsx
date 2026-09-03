@@ -15,7 +15,7 @@ import {
 } from "@/actions/spending";
 import { getAllVendorLabels } from "@/actions/vendorLabels";
 import { formatCents } from "@/lib/money";
-import { monthKey } from "@/lib/dates";
+import { currentMonthKey } from "@/lib/dates";
 
 interface PageProps {
   searchParams: Promise<{ month?: string; account?: string }>;
@@ -23,7 +23,7 @@ interface PageProps {
 
 export default async function SpendingPage({ searchParams }: PageProps) {
   const sp = await searchParams;
-  const currentMonth = sp.month ?? monthKey(new Date());
+  const currentMonth = sp.month ?? currentMonthKey();
   const accountFilter = sp.account ?? "all";
 
   const spendingAccounts = await getSpendingAccounts();
