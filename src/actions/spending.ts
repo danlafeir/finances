@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { currentMonthKey, monthKey, monthKeyShortLabel, monthRange, prevMonthKey, shiftMonthKeyYears } from "@/lib/dates";
+import { normalizeDescriptionKey } from "@/lib/descriptionKey";
 
 export async function getSpendingAccounts() {
   return prisma.account.findMany({
@@ -61,7 +62,7 @@ export async function getRecurringTransactions(
 
   const byDesc = new Map<string, { monthKeys: Set<string>; latestCents: number; latestDate: Date }>();
   for (const row of rows) {
-    const key = row.description.trim();
+    const key = normalizeDescriptionKey(row.description);
     const mk_ = monthKey(row.date);
     if (!byDesc.has(key)) {
       byDesc.set(key, { monthKeys: new Set(), latestCents: row.amountCents, latestDate: row.date });
@@ -114,7 +115,7 @@ export async function getAnnualRecurringTransactions(
   const byDesc = new Map<string, { byMonthOfYear: Map<string, MonthOfYearStats>; allMonths: Set<string> }>();
 
   for (const row of rows) {
-    const key = row.description.trim();
+    const key = normalizeDescriptionKey(row.description);
     const rowMonthKey = monthKey(row.date);
     const monthOfYear = rowMonthKey.slice(5);
     const year = rowMonthKey.slice(0, 4);
@@ -212,32 +213,36 @@ export async function getAnomalousDescriptions(
   };
 
   const [baselineRows, currentRows] = await Promise.all([
-    prisma.transaction.groupBy({
-      by: ["description"],
+    prisma.transaction.findMany({
       where: { ...sharedWhere, date: { gte: baselineStart, lte: baselineEnd } },
-      _sum: { amountCents: true },
+      select: { description: true, amountCents: true },
     }),
-    prisma.transaction.groupBy({
-      by: ["description"],
+    prisma.transaction.findMany({
       where: { ...sharedWhere, date: { gte: currentStart, lte: currentEnd } },
-      _sum: { amountCents: true },
+      select: { description: true, amountCents: true },
     }),
   ]);
 
-  const baselineMap = new Map<string, number>();
-  for (const row of baselineRows) {
-    baselineMap.set(row.description, row._sum.amountCents ?? 0);
+  function sumByNormalizedKey(rows: { description: string; amountCents: number }[]): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      const key = normalizeDescriptionKey(row.description);
+      map.set(key, (map.get(key) ?? 0) + row.amountCents);
+    }
+    return map;
   }
 
+  const baselineMap = sumByNormalizedKey(baselineRows);
+  const currentMap = sumByNormalizedKey(currentRows);
+
   const anomalies: AnomalyItem[] = [];
-  for (const row of currentRows) {
-    const currentCents = row._sum.amountCents ?? 0;
-    const baselineTotal = baselineMap.get(row.description) ?? 0;
+  for (const [description, currentCents] of currentMap) {
+    const baselineTotal = baselineMap.get(description) ?? 0;
     if (baselineTotal === 0) continue; // skip descriptions with no prior history
     const avgCents = Math.round(baselineTotal / 3);
     if (currentCents > avgCents * 1.5) {
       anomalies.push({
-        description: row.description,
+        description,
         currentCents,
         avgCents,
         deltaCents: currentCents - avgCents,
