@@ -210,7 +210,28 @@ model TaxReturnSummary {
   // $3,000 capital-loss limitation and Schedule D adjustments, not directly
   // comparable to TaxRecord's short/long-term gain splits
 
+  shortTermCapitalGainCents Int? // Schedule D line 7, signed
+  longTermCapitalGainCents  Int? // Schedule D line 15, signed
+  capitalLossCarryoverCents Int? // loss available to carry into next tax year, from the
+  // Capital Loss Carryover Worksheet — not a printed 1040/Schedule D line, so this is
+  // manual-entry only; always a positive magnitude
+
+  deductionCents                 Int? // line 12 — standard or itemized deduction actually taken
+  itemizedDeductionsCents        Int? // Schedule A line 17 — total itemized, even if the
+  // standard deduction was ultimately used (deductionCents > itemizedDeductionsCents)
+  saltDeductionCents             Int? // Schedule A line 5e — state/local taxes, capped at $10,000
   mortgageInterestDeductionCents Int? // Schedule A, if itemized; null if standard deduction was used
+  qbiDeductionCents              Int? // line 13 — qualified business income deduction
+
+  iraDeductionCents Int? // Schedule 1 line 20
+  hsaDeductionCents Int? // Schedule 1 line 13
+
+  amtiCents                   Int? // Form 6251 line 4 — AMT taxable income
+  tentativeMinimumTaxCents    Int? // Form 6251 line 7
+  amtCents                    Int? // Schedule 2 line 1 — AMT actually owed
+  additionalMedicareTaxCents  Int? // Schedule 2 line 11 (Form 8959)
+  netInvestmentIncomeTaxCents Int? // Schedule 2 line 12 (Form 8960)
+  estimatedTaxPenaltyCents    Int? // line 38 — Form 2210 underpayment penalty
 
   notes     String?
   createdAt DateTime @default(now())
