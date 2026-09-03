@@ -46,10 +46,10 @@ export function RecurringChargesTable({ items }: RecurringChargesTableProps) {
   }
 
   const monthlyTotal = items
-    .filter((i) => i.frequency === "Monthly" && i.tag !== "INVESTMENT")
+    .filter((i) => i.frequency === "Monthly" && i.tag !== "INVESTMENT" && i.tag !== "CREDIT_CARD")
     .reduce((s, i) => s + i.cents, 0);
   const annualTotal = items
-    .filter((i) => i.frequency === "Annual")
+    .filter((i) => i.frequency === "Annual" && i.tag !== "INVESTMENT" && i.tag !== "CREDIT_CARD")
     .reduce((s, i) => s + i.cents, 0);
 
   return (
