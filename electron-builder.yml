@@ -7,17 +7,19 @@ directories:
 # its own (main.js/preload.js/settingsStore.js only use Electron + Node
 # builtins), so nothing from node_modules needs to ship here. The actual app
 # -- Next.js, Prisma, Plaid, libsql and its native binding -- ships as one
-# self-contained folder via extraResources instead. This also guarantees
-# dev.db and .env (which live at the repo root) can never end up in a build.
+# self-contained folder copied in by afterPack.js instead (dev.db and local
+# secrets, which live at the repo root, never enter .next/standalone in the
+# first place -- see electron/copy-assets.js).
 files:
   - electron/main.js
   - electron/preload.js
   - electron/settingsStore.js
   - package.json
 
-extraResources:
-  - from: .next/standalone
-    to: app
+# .next/standalone is copied in here rather than via extraResources: that
+# silently drops any nested node_modules directory (verified empirically --
+# see electron/afterPack.js).
+afterPack: electron/afterPack.js
 
 mac:
   target:
