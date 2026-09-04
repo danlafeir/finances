@@ -2,11 +2,17 @@
   "name": "finances",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:dev": "node electron/dev.js",
+    "electron:build": "next build && node electron/copy-assets.js",
+    "dist:mac": "npm run electron:build && electron-builder --mac",
+    "dist:win": "npm run electron:build && electron-builder --win",
+    "dist:linux": "npm run electron:build && electron-builder --linux"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -43,6 +49,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
+    "electron": "^44.1.1",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
