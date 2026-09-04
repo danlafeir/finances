@@ -16,7 +16,7 @@ export type { Transaction, RemovedTransaction, AccountBase, Holding, Security };
 
 function getEnv(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`${name} is not set`);
+  if (!value) throw new Error("Plaid isn't configured yet — add your credentials in Settings.");
   return value;
 }
 
