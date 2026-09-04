@@ -3,6 +3,13 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
 
+// Every route reads from a database that's different on every install (and
+// changes over time on a single install) -- there's no page here that's
+// safe to prerender once at build time. Without this, Next's automatic
+// static optimization silently bakes whatever data exists on the build
+// machine into static HTML shipped with the app.
+export const dynamic = "force-dynamic";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
