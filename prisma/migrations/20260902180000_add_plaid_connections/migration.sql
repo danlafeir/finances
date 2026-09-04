@@ -15,6 +15,16 @@ CREATE TABLE "PlaidConnection" (
     "updatedAt" DATETIME NOT NULL
 );
 
+-- AlterTable: these columns predate this migration's tracked history (added
+-- out-of-band during development) -- adding them here so a from-scratch
+-- `migrate deploy` reaches the same schema every existing install already has.
+ALTER TABLE "Account" ADD COLUMN "snapshotBalanceCents" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Account" ADD COLUMN "snapshotDate" DATETIME;
+ALTER TABLE "Account" ADD COLUMN "interestRateBps" INTEGER;
+ALTER TABLE "Account" ADD COLUMN "contributionCents" INTEGER;
+ALTER TABLE "Account" ADD COLUMN "contributionFrequency" TEXT;
+UPDATE "Account" SET "snapshotBalanceCents" = "openingBalanceCents";
+
 -- RedefineTables
 PRAGMA defer_foreign_keys=ON;
 PRAGMA foreign_keys=OFF;
