@@ -113,10 +113,13 @@ async function createWindow() {
   mainWindow.loadURL(url);
 }
 
-ipcMain.handle("settings:get-plaid", () => settingsStore.load().plaid);
+ipcMain.handle("settings:get-config", () => {
+  const settings = settingsStore.load();
+  return { mode: settings.mode, plaid: settings.plaid };
+});
 
-ipcMain.handle("settings:set-plaid", (_event, creds) => {
-  settingsStore.savePlaid(creds);
+ipcMain.handle("settings:set-config", (_event, config) => {
+  settingsStore.saveConfig(config);
   stopEmbeddedServer();
   app.relaunch();
   app.exit(0);

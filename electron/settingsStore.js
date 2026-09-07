@@ -34,6 +34,7 @@ function load() {
       version: 1,
       encrypted: encryptionAvailable(),
       encryptionKeyEnc: seal(crypto.randomBytes(32).toString("base64")),
+      mode: null,
       plaid: null,
     };
     fs.writeFileSync(file, JSON.stringify(record, null, 2));
@@ -64,18 +65,21 @@ function toRuntime(record) {
         env: record.plaid.env,
       }
     : null;
-  return { encryptionKey, plaid, encryptionAvailable: record.encrypted };
+  return { encryptionKey, mode: record.mode ?? null, plaid, encryptionAvailable: record.encrypted };
 }
 
-function savePlaid({ clientId, secret, env }) {
+// config is either { mode: "offline" } or { mode: "online", clientId, secret, env }.
+// Switching to offline always clears any stored Plaid credentials, since
+// offline means no bank connection should be active.
+function saveConfig(config) {
   const file = settingsPath();
   const record = JSON.parse(fs.readFileSync(file, "utf8"));
-  record.plaid = {
-    clientIdEnc: seal(clientId),
-    secretEnc: seal(secret),
-    env,
-  };
+  record.mode = config.mode;
+  record.plaid =
+    config.mode === "online"
+      ? { clientIdEnc: seal(config.clientId), secretEnc: seal(config.secret), env: config.env }
+      : null;
   fs.writeFileSync(file, JSON.stringify(record, null, 2));
 }
 
-module.exports = { load, savePlaid };
+module.exports = { load, saveConfig };

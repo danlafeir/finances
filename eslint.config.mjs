@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     // Plain CommonJS Node/Electron main-process scripts, not part of the
     // Next.js app -- run directly, no transpile step.
     "electron/**",
+    // electron-builder output.
+    "release/**",
   ]),
 ]);
 

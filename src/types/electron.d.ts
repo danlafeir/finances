@@ -1,11 +1,15 @@
 export {};
 
+type PlaidCreds = { clientId: string; secret: string; env: string };
+type AppConfig = { mode: "offline" | "online" | null; plaid: PlaidCreds | null };
+type AppConfigInput = { mode: "offline" } | { mode: "online"; clientId: string; secret: string; env: string };
+
 declare global {
   interface Window {
     electronAPI?: {
       isElectron: true;
-      getPlaidSettings: () => Promise<{ clientId: string; secret: string; env: string } | null>;
-      setPlaidSettings: (creds: { clientId: string; secret: string; env: string }) => Promise<void>;
+      getConfig: () => Promise<AppConfig>;
+      setConfig: (config: AppConfigInput) => Promise<void>;
     };
   }
 }
