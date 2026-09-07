@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Coins,
   LayoutDashboard,
   Wallet,
   ShoppingCart,
@@ -30,7 +31,8 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 shrink-0 border-r bg-sidebar flex flex-col h-full">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex items-center gap-2">
+        <Coins className="h-5 w-5 text-primary shrink-0" />
         <h1 className="text-lg font-semibold tracking-tight">Finances</h1>
       </div>
       <nav className="flex-1 p-2 space-y-0.5">
