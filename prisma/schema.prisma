@@ -53,6 +53,26 @@ enum PlaidConnectionStatus {
   ERROR
 }
 
+enum InsurancePolicyType {
+  AUTO
+  HOME
+  RENTERS
+  HEALTH
+  LIFE
+  UMBRELLA
+  DISABILITY
+  PET
+  OTHER
+}
+
+enum PremiumFrequency {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  OTHER
+}
+
 enum HoldingSource {
   MANUAL
   PLAID
@@ -296,4 +316,64 @@ model PriceSnapshot {
   currency   String   @default("USD")
   fetchedAt  DateTime @default(now())
   source     String   @default("yahoo-finance2")
+}
+
+model InsurancePolicy {
+  id               String              @id @default(cuid())
+  type             InsurancePolicyType
+  typeOtherLabel   String? // required when type == OTHER
+  nickname         String? // e.g. "Honda Civic", "Primary Residence"
+  insurer          String
+  policyNumber     String?
+  namedInsureds    String? // free text, as printed on the policy
+  effectiveDate    DateTime?
+  expirationDate   DateTime?
+  premiumCents     Int?
+  premiumFrequency PremiumFrequency?
+  notes            String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  documents InsuranceDocument[]
+  analyses  InsuranceAnalysis[]
+
+  @@index([type])
+  @@index([expirationDate])
+}
+
+model InsuranceDocument {
+  id        String   @id @default(cuid())
+  policyId  String
+  policy    InsurancePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+  createdAt DateTime @default(now())
+
+  blob     InsuranceDocumentBlob?
+  analyses InsuranceAnalysis[]
+
+  @@index([policyId])
+}
+
+model InsuranceDocumentBlob {
+  id         String            @id @default(cuid())
+  documentId String            @unique
+  document   InsuranceDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  data       Bytes
+  createdAt  DateTime          @default(now())
+}
+
+// One row per pasted AI analysis — kept as history rather than overwritten, so a
+// re-analysis after a renewal or a better AI read doesn't destroy prior context.
+model InsuranceAnalysis {
+  id           String             @id @default(cuid())
+  policyId     String
+  policy       InsurancePolicy    @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  documentId   String?
+  document     InsuranceDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  analysisJson String // JSON-serialized, Zod-validated InsuranceAnalysisInput (see src/lib/insurance/schema.ts)
+  createdAt    DateTime           @default(now())
+
+  @@index([policyId, createdAt])
 }
