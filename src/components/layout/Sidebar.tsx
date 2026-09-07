@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Receipt,
   Landmark,
+  Shield,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/spending", label: "Spending", icon: ShoppingCart },
   { href: "/investments", label: "Investments", icon: TrendingUp },
   { href: "/tax", label: "Tax", icon: Receipt },
+  { href: "/insurance", label: "Insurance", icon: Shield },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
