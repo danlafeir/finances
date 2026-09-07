@@ -17,13 +17,20 @@ export function DeleteInsuranceDocumentButton({ id, fileName }: { id: string; fi
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
     setLoading(true);
-    await deleteInsuranceDocument(id);
-    setOpen(false);
-    setLoading(false);
-    router.refresh();
+    setError(null);
+    try {
+      await deleteInsuranceDocument(id);
+      setOpen(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -39,6 +46,7 @@ export function DeleteInsuranceDocumentButton({ id, fileName }: { id: string; fi
               Any saved analysis generated from this document will be kept, just unlinked from it. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          {error && <p className="text-sm text-destructive mt-2">{error}</p>}
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel

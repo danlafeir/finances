@@ -68,9 +68,16 @@ export function isExpiringSoon(
   const today = dateOnly(new Date());
   if (expiry < today) return "expired";
 
-  const threshold = new Date();
-  threshold.setDate(threshold.getDate() + thresholdDays);
-  if (expiry <= dateOnly(threshold)) return "soon";
+  // Offset via millisecond arithmetic on the UTC instant, not `Date#setDate`, which
+  // mutates in local time — that reintroduces the same day-early/late drift this
+  // function exists to avoid.
+  const threshold = dateOnly(new Date(Date.now() + thresholdDays * 24 * 60 * 60 * 1000));
+  if (expiry <= threshold) return "soon";
 
   return null;
+}
+
+/** Formats a UTC-midnight date column for display, without a local-timezone off-by-one day. */
+export function formatDateOnly(date: Date): string {
+  return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 }

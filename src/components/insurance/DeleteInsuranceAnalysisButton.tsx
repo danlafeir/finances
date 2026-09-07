@@ -17,13 +17,20 @@ export function DeleteInsuranceAnalysisButton({ id }: { id: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
     setLoading(true);
-    await deleteInsuranceAnalysis(id);
-    setOpen(false);
-    setLoading(false);
-    router.refresh();
+    setError(null);
+    try {
+      await deleteInsuranceAnalysis(id);
+      setOpen(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -38,6 +45,7 @@ export function DeleteInsuranceAnalysisButton({ id }: { id: string }) {
             <DialogTitle>Delete this analysis?</DialogTitle>
             <DialogDescription>This cannot be undone.</DialogDescription>
           </DialogHeader>
+          {error && <p className="text-sm text-destructive mt-2">{error}</p>}
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getInsurancePolicies } from "@/actions/insurance";
 import { formatCents } from "@/lib/money";
-import { groupPoliciesByType, policyTypeLabel, isExpiringSoon, PREMIUM_FREQUENCY_LABEL } from "@/lib/insurance/types";
+import { groupPoliciesByType, policyTypeLabel, isExpiringSoon, formatDateOnly, PREMIUM_FREQUENCY_LABEL } from "@/lib/insurance/types";
 import { cn } from "@/lib/utils";
 
 export default async function InsurancePage() {
@@ -70,7 +70,7 @@ export default async function InsurancePage() {
                           <td className="py-2 px-3">
                             <div className="flex items-center gap-2">
                               {p.expirationDate
-                                ? p.expirationDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+                                ? formatDateOnly(p.expirationDate)
                                 : <span className="text-muted-foreground">—</span>}
                               {status === "expired" && <Badge variant="destructive">Expired</Badge>}
                               {status === "soon" && <Badge className="bg-amber-600 text-white">Expiring soon</Badge>}

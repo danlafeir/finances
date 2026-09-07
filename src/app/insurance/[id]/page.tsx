@@ -19,7 +19,7 @@ import { parseStoredAnalysis } from "@/lib/insurance/analysis";
 import { buildInsurancePromptTemplate } from "@/lib/insurance/prompt";
 import { formatFileSize } from "@/lib/insurance/documents";
 import { formatCents } from "@/lib/money";
-import { policyTypeLabel, isExpiringSoon, PREMIUM_FREQUENCY_LABEL } from "@/lib/insurance/types";
+import { policyTypeLabel, isExpiringSoon, formatDateOnly, PREMIUM_FREQUENCY_LABEL } from "@/lib/insurance/types";
 import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +88,7 @@ export default async function InsurancePolicyPage({
           <div>
             <p className="text-muted-foreground text-xs">Effective</p>
             <p className="font-medium">
-              {policy.effectiveDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              {formatDateOnly(policy.effectiveDate)}
             </p>
           </div>
         )}
@@ -96,7 +96,7 @@ export default async function InsurancePolicyPage({
           <div>
             <p className="text-muted-foreground text-xs">Expires</p>
             <p className="font-medium">
-              {policy.expirationDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              {formatDateOnly(policy.expirationDate)}
             </p>
           </div>
         )}

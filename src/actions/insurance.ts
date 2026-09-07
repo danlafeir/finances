@@ -118,6 +118,16 @@ export async function submitInsuranceAnalysis(
     return { success: false, errors: mapZodIssues(result.error.issues) };
   }
 
+  if (documentId) {
+    const document = await prisma.insuranceDocument.findUnique({
+      where: { id: documentId },
+      select: { policyId: true },
+    });
+    if (!document || document.policyId !== policyId) {
+      throw new Error("That document does not belong to this policy.");
+    }
+  }
+
   const created = await prisma.insuranceAnalysis.create({
     data: {
       policyId,

@@ -60,7 +60,10 @@ export function InsuranceAnalysisUploader({ policyId, documents }: InsuranceAnal
       }
       setPasted("");
       setPreview(null);
+      setDocumentId("");
       router.refresh();
+    } catch (err) {
+      setErrors([{ path: "(root)", message: err instanceof Error ? err.message : "Failed to save analysis" }]);
     } finally {
       setSaving(false);
     }

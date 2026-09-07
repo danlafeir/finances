@@ -12,7 +12,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return new Response("Not found", { status: 404 });
   }
 
-  const asciiFallback = doc.fileName.replace(/[^\x20-\x7e]/g, "_");
+  // Exclude '"' and '\' too, not just non-ASCII — both are legal in filenames on
+  // macOS/Windows but would otherwise break out of the quoted-string filename param.
+  const asciiFallback = doc.fileName.replace(/[^\x20-\x7e]|["\\]/g, "_");
 
   return new Response(new Uint8Array(doc.blob.data), {
     headers: {

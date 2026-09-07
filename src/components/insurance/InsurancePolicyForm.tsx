@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { createInsurancePolicy, updateInsurancePolicy } from "@/actions/insurance";
 import { InsurancePolicyInput } from "@/lib/schemas";
+import { mapZodIssues } from "@/lib/insurance/analysis";
 import { parseDollarsToCents, centsToDisplay } from "@/lib/money";
 import { INSURANCE_POLICY_TYPES } from "@/lib/insurance/types";
 import type { InsurancePolicy } from "@/generated/prisma/client";
@@ -28,6 +30,7 @@ const PREMIUM_FREQUENCIES = [
   { value: "QUARTERLY", label: "Quarterly" },
   { value: "SEMI_ANNUAL", label: "Semi-Annual" },
   { value: "ANNUAL", label: "Annual" },
+  { value: "OTHER", label: "Other" },
 ];
 
 export function InsurancePolicyForm({ record }: InsurancePolicyFormProps) {
@@ -73,7 +76,11 @@ export function InsurancePolicyForm({ record }: InsurancePolicyFormProps) {
       router.push(`/insurance/${saved.id}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      if (err instanceof z.ZodError) {
+        setError(mapZodIssues(err.issues).map((i) => i.message).join("; "));
+      } else {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
