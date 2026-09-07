@@ -14,6 +14,10 @@ import {
 
 export type { Transaction, RemovedTransaction, AccountBase, Holding, Security };
 
+export function isPlaidConfigured(): boolean {
+  return !!process.env.PLAID_CLIENT_ID && !!process.env.PLAID_SECRET;
+}
+
 function getEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error("Plaid isn't configured yet — add your credentials in Settings.");

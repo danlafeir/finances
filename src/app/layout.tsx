@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { isPlaidConfigured } from "@/lib/plaid/client";
 
 // Every route reads from a database that's different on every install (and
 // changes over time on a single install) -- there's no page here that's
@@ -36,7 +37,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full flex bg-background text-foreground">
-        <Sidebar />
+        <Sidebar plaidConfigured={isPlaidConfigured()} />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </body>
     </html>

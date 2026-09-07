@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Wallet },
-  { href: "/connections", label: "Connections", icon: Landmark },
+  { href: "/connections", label: "Connections", icon: Landmark, requiresPlaid: true },
   { href: "/spending", label: "Spending", icon: ShoppingCart },
   { href: "/investments", label: "Investments", icon: TrendingUp },
   { href: "/tax", label: "Tax", icon: Receipt },
@@ -26,8 +26,9 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ plaidConfigured }: { plaidConfigured: boolean }) {
   const pathname = usePathname();
+  const items = navItems.filter((item) => !item.requiresPlaid || plaidConfigured);
 
   return (
     <aside className="w-56 shrink-0 border-r bg-sidebar flex flex-col h-full">
@@ -36,7 +37,7 @@ export function Sidebar() {
         <h1 className="text-lg font-semibold tracking-tight">Finances</h1>
       </div>
       <nav className="flex-1 p-2 space-y-0.5">
-        {navItems.map(({ href, label, icon: Icon }) => (
+        {items.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

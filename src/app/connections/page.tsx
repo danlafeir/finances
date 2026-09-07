@@ -1,9 +1,13 @@
+import { redirect } from "next/navigation";
 import { ConnectPlaidButton } from "@/components/plaid/ConnectPlaidButton";
 import { ConnectionCard } from "@/components/plaid/ConnectionCard";
 import { SyncNowButton } from "@/components/plaid/SyncNowButton";
 import { getConnections } from "@/actions/plaidConnections";
+import { isPlaidConfigured } from "@/lib/plaid/client";
 
 export default async function ConnectionsPage() {
+  if (!isPlaidConfigured()) redirect("/settings");
+
   const connections = await getConnections();
 
   return (
