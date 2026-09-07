@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TransactionType, TransactionSource } from "@/generated/prisma/enums";
+import { TransactionType, TransactionSource, InsurancePolicyType, PremiumFrequency } from "@/generated/prisma/enums";
 
 const BaseTransactionSchema = z.object({
   date: z.string(),
@@ -103,3 +103,24 @@ export const TaxReturnSummaryInput = z.object({
 });
 
 export type TaxReturnSummaryInput = z.infer<typeof TaxReturnSummaryInput>;
+
+export const InsurancePolicyInput = z
+  .object({
+    type: z.nativeEnum(InsurancePolicyType),
+    typeOtherLabel: z.string().optional().nullable(),
+    nickname: z.string().optional().nullable(),
+    insurer: z.string().min(1, "Insurer is required"),
+    policyNumber: z.string().optional().nullable(),
+    namedInsureds: z.string().optional().nullable(),
+    effectiveDate: z.string().optional().nullable(),
+    expirationDate: z.string().optional().nullable(),
+    premiumCents: z.number().int().nonnegative().optional().nullable(),
+    premiumFrequency: z.nativeEnum(PremiumFrequency).optional().nullable(),
+    notes: z.string().optional().nullable(),
+  })
+  .refine((v) => v.type !== "OTHER" || !!v.typeOtherLabel?.trim(), {
+    message: "Please describe the policy type",
+    path: ["typeOtherLabel"],
+  });
+
+export type InsurancePolicyInput = z.infer<typeof InsurancePolicyInput>;
