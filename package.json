@@ -2,6 +2,7 @@
   "name": "finances",
   "version": "0.1.0",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",

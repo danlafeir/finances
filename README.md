@@ -153,3 +153,9 @@ Tracks recurring charges and unusual activity across checking and credit card ac
 | Prices | Yahoo Finance (`yahoo-finance2`) |
 | Bank/brokerage sync | Plaid (`plaid`, `react-plaid-link`) |
 | Secrets | plaintext `.env` |
+
+---
+
+## License
+
+GPL-3.0-or-later. See [LICENSE](./LICENSE).
