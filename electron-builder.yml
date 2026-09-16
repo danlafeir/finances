@@ -14,6 +14,7 @@ files:
   - electron/main.js
   - electron/preload.js
   - electron/settingsStore.js
+  - build/icon.png
   - package.json
 
 # .next/standalone is copied in here rather than via extraResources: that
