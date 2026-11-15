@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Stops `next dev` from rewriting AGENTS.md; that file is maintained by hand.
+  agentRules: false,
   experimental: {
     // Default Server Action body limit is 1MB, which would silently reject any
     // uploaded insurance policy PDF/photo over that. 20MB gives headroom above
