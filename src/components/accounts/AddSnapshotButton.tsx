@@ -24,7 +24,7 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function AddSnapshotButton({ account }: { account: Account }) {
+export function AddSnapshotButton({ account, defaultAsOf }: { account: Account; defaultAsOf?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -110,7 +110,7 @@ export function AddSnapshotButton({ account }: { account: Account }) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="asOfDate">As of Date</Label>
-                <Input id="asOfDate" name="asOfDate" type="date" required defaultValue={today()} />
+                <Input id="asOfDate" name="asOfDate" type="date" required defaultValue={defaultAsOf ?? today()} />
               </div>
             </div>
 
