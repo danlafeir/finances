@@ -1,6 +1,6 @@
 # Finances
 
-A personal finance tracker built with Next.js, Prisma, and SQLite. Track accounts, balances, investments, and spending in one place, either by hand or synced automatically from your bank/brokerage via Plaid.
+A personal finance tracker built with Next.js, Prisma, and SQLite. Track accounts, balances, investments, and spending in one place, entered by hand from your own statements and CSV exports — no bank logins or third-party aggregators, so the records stay yours to check the institutions' math against.
 
 ---
 
@@ -21,22 +21,11 @@ Edit `.env`:
 ```
 DATABASE_URL="file:./dev.db"
 PRICE_TTL_MINUTES=60
-
-PLAID_CLIENT_ID=
-PLAID_SECRET=
-PLAID_ENV=sandbox
-ENCRYPTION_KEY=
 ```
 
 `DATABASE_URL` points at a local SQLite file via libSQL. `PRICE_TTL_MINUTES` controls how long stock/ETF price lookups are cached before re-fetching from Yahoo Finance (default 60 is fine).
 
-In the desktop app the database is `finances.db` inside the app's data folder, next to a `files/` folder holding hard copies of uploaded documents (insurance policies today; statements and imports below), and you can relocate it from **Settings → Data location** (for example into a synced folder). Choosing a new folder copies the database and `files/` there and restarts the app; the old copy is left in place as a backup, and a `finances.db` already in the new folder is used as-is rather than overwritten. The Settings screen no longer exposes the Plaid option; the Connections page only appears when Plaid credentials are already configured.
-
-The Plaid and encryption values currently sit in `.env` as plaintext. To set this up:
-
-1. Create a Plaid developer account at [dashboard.plaid.com](https://dashboard.plaid.com) and grab your `client_id` and Sandbox `secret`.
-2. Generate an encryption key: `openssl rand -base64 32`.
-3. Fill in `PLAID_CLIENT_ID`, `PLAID_SECRET`, and `ENCRYPTION_KEY` in `.env` with those values.
+In the desktop app the database is `finances.db` inside the app's data folder, next to a `files/` folder holding hard copies of uploaded documents (insurance policies today; statements and imports below), and you can relocate it from **Settings → Data location** (for example into a synced folder). Choosing a new folder copies the database and `files/` there and restarts the app; the old copy is left in place as a backup, and a `finances.db` already in the new folder is used as-is rather than overwritten.
 
 ```bash
 # Apply migrations (creates the SQLite file on first run)
@@ -126,24 +115,13 @@ The **Data** page answers "what do I still need to download?". For each account 
 
 - **Checking / credit card** — needs a transactions CSV from the day after your latest transaction through month-end. The balance is your last snapshot plus the transactions after it, so a statement balance is optional but lets you reconcile.
 - **Everything else** (savings, brokerage, retirement, HSA, 529, stock plan) — needs a statement balance for each month-end since the last snapshot (at most 12; an account with no snapshot yet is asked only for the latest one).
-- **Plaid-linked accounts and mortgages with a payment schedule** — nothing to download; they're marked Automatic.
+- **Mortgages with a payment schedule** — nothing to download; they're marked Automatic.
 
 Each row has **Add Snapshot** (pre-filled with the earliest missing month-end) and, for checking/credit card, **Import CSV**. The page also shows the prior tax year (filed return, which 1099/1098 forms your accounts normally produce and how many you've entered, plus a place to save the form itself) and any insurance policies without a saved document.
 
 ### Saved files
 
 Hard copies of what you download live under `files/` in the data folder (next to `finances.db`), organized as `files/accounts/<account>/statements/` and `imports/`, `files/tax/<year>/`, and `files/insurance/<policy>/`. Attach a statement (PDF, image, or CSV) when adding a balance snapshot, and the original CSV is kept automatically after a transaction import. Saving the same file twice is a no-op. Saved files show up on each account's page, where they can be downloaded or deleted; deleting an account keeps its files on disk. The tax CSV import isn't saved, since it's text produced by your AI tool rather than a download.
-
-### Connections
-
-Links accounts to a bank or brokerage via [Plaid](https://plaid.com) instead of manual entry/CSV import. A **connection** is one Plaid login ("Item") at an institution — since one login can expose several accounts, and since two people can each have their own login at the same institution, a connection is a separate object from an `Account` and can map to multiple accounts.
-
-- **Connecting** — pick an owner label (just a name tag, e.g. "Dan" — not an app login; the app itself has no authentication), authenticate with the institution through Plaid Link, then map each account Plaid found to either a new or an existing `Account`. A suggested account type is pre-filled based on Plaid's account subtype but always requires confirmation — Plaid can't reliably distinguish, say, a qualified vs. taxable brokerage on its own. Loan-type accounts (mortgages, auto loans, etc.) aren't supported for sync yet.
-- **Sync Now** — pulls current balances, new/changed/removed transactions, and investment holdings for a connection (or every connection at once). There's no live webhook — sync is on-demand only. Balances write through the same snapshot mechanism as a manual "Add Snapshot." Holdings synced from Plaid are tagged separately from manually-entered ones and never overwrite them.
-- **Reconnecting** — if Plaid reports a login issue, the connection shows "Needs reconnect" and a Reconnect button that re-opens Plaid Link to restore access without re-mapping accounts.
-- **Unlinking** — remove a single account's Plaid link (falls back to manual tracking, keeps its history) or remove the whole connection (keeps every linked account and its history, just stops syncing).
-
-A Plaid-linked CHECKING/CREDIT_CARD account's CSV import entry point is hidden, since sync already brings in its transactions — manually adding a balance snapshot is still available if you ever want to record a value between syncs.
 
 ### Spending
 
@@ -167,8 +145,6 @@ Tracks recurring charges and unusual activity across checking and credit card ac
 | UI | shadcn/ui on `@base-ui/react` |
 | Charts | Recharts |
 | Prices | Yahoo Finance (`yahoo-finance2`) |
-| Bank/brokerage sync | Plaid (`plaid`, `react-plaid-link`) |
-| Secrets | plaintext `.env` |
 
 ---
 

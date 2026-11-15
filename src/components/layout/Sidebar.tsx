@@ -9,7 +9,6 @@ import {
   ShoppingCart,
   TrendingUp,
   Receipt,
-  Landmark,
   Shield,
   ClipboardCheck,
   Settings,
@@ -19,7 +18,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Wallet },
-  { href: "/connections", label: "Connections", icon: Landmark, requiresPlaid: true },
   { href: "/data", label: "Data", icon: ClipboardCheck },
   { href: "/spending", label: "Spending", icon: ShoppingCart },
   { href: "/investments", label: "Investments", icon: TrendingUp },
@@ -28,9 +26,8 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar({ plaidConfigured }: { plaidConfigured: boolean }) {
+export function Sidebar() {
   const pathname = usePathname();
-  const items = navItems.filter((item) => !item.requiresPlaid || plaidConfigured);
 
   return (
     <aside className="w-56 shrink-0 border-r bg-sidebar flex flex-col h-full">
@@ -39,7 +36,7 @@ export function Sidebar({ plaidConfigured }: { plaidConfigured: boolean }) {
         <h1 className="text-lg font-semibold tracking-tight">Finances</h1>
       </div>
       <nav className="flex-1 p-2 space-y-0.5">
-        {items.map(({ href, label, icon: Icon }) => (
+        {navItems.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

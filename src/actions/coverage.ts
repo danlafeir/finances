@@ -51,7 +51,6 @@ export async function getDataCoverage() {
         statementCount: statement?._count ?? 0,
         lastStatementDate: statement?._max.asOfDate ?? null,
         hasMortgageSchedule: scheduled.has(account.id),
-        isPlaidLinked: account.plaidConnectionId !== null,
       },
       today
     );

@@ -13,7 +13,6 @@ export interface CoverageInput {
   statementCount: number;
   lastStatementDate: Date | null;
   hasMortgageSchedule: boolean;
-  isPlaidLinked: boolean;
 }
 
 export type Need =
@@ -67,9 +66,6 @@ export function assessAccount(input: CoverageInput, today: Date): AccountCoverag
     : null;
   const base = { ...input, daysSinceSnapshot, need: null, reconcileAsOf: null, note: null };
 
-  if (input.isPlaidLinked) {
-    return { ...base, status: "automatic", note: "Synced from the bank." };
-  }
   if (input.type === "MORTGAGE" && input.hasMortgageSchedule) {
     return { ...base, status: "automatic", note: "Balance follows the payment schedule. Only the year-end Form 1098 is needed." };
   }
