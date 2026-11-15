@@ -100,6 +100,7 @@ export function AddSnapshotButton({ account, defaultAsOf }: { account: Account; 
               <div className="space-y-1.5">
                 <Label htmlFor="balance">{isStockPlan ? "Unvested Amount" : "Balance"}</Label>
                 <CurrencyInput
+                  key={account.snapshotBalanceCents}
                   id="balance"
                   name="balance"
                   required
@@ -110,13 +111,19 @@ export function AddSnapshotButton({ account, defaultAsOf }: { account: Account; 
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="asOfDate">As of Date</Label>
-                <Input id="asOfDate" name="asOfDate" type="date" required defaultValue={defaultAsOf ?? today()} />
+                <Input key={defaultAsOf} id="asOfDate" name="asOfDate" type="date" required defaultValue={defaultAsOf ?? today()} />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="statement">Statement (optional)</Label>
-              <Input id="statement" name="statement" type="file" accept={acceptAttr("STATEMENT")} />
+              <input
+                id="statement"
+                name="statement"
+                type="file"
+                accept={acceptAttr("STATEMENT")}
+                className="block w-full text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-3 file:py-1.5 file:text-sm file:font-medium"
+              />
               <p className="text-xs text-muted-foreground">
                 Keeps a copy of the PDF, image, or CSV in your data folder.
               </p>
