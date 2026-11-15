@@ -36,6 +36,7 @@ function load() {
       encryptionKeyEnc: seal(crypto.randomBytes(32).toString("base64")),
       mode: null,
       plaid: null,
+      dataDir: null,
     };
     fs.writeFileSync(file, JSON.stringify(record, null, 2));
     return toRuntime(record);
@@ -65,7 +66,13 @@ function toRuntime(record) {
         env: record.plaid.env,
       }
     : null;
-  return { encryptionKey, mode: record.mode ?? null, plaid, encryptionAvailable: record.encrypted };
+  return {
+    encryptionKey,
+    mode: record.mode ?? null,
+    plaid,
+    dataDir: record.dataDir ?? null,
+    encryptionAvailable: record.encrypted,
+  };
 }
 
 // config is either { mode: "offline" } or { mode: "online", clientId, secret, env }.
@@ -82,4 +89,12 @@ function saveConfig(config) {
   fs.writeFileSync(file, JSON.stringify(record, null, 2));
 }
 
-module.exports = { load, saveConfig };
+// null resets to the default location under userData.
+function saveDataDir(dataDir) {
+  const file = settingsPath();
+  const record = JSON.parse(fs.readFileSync(file, "utf8"));
+  record.dataDir = dataDir;
+  fs.writeFileSync(file, JSON.stringify(record, null, 2));
+}
+
+module.exports = { load, saveConfig, saveDataDir };
