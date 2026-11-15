@@ -6,7 +6,7 @@ import { parseCsvText, type ParseResult } from "@/lib/csv/parser";
 import { Upload } from "lucide-react";
 
 interface CsvUploaderProps {
-  onParsed: (result: ParseResult) => void;
+  onParsed: (result: ParseResult, file: File) => void;
 }
 
 export function CsvUploader({ onParsed }: CsvUploaderProps) {
@@ -29,7 +29,7 @@ export function CsvUploader({ onParsed }: CsvUploaderProps) {
           return;
         }
         setError(null);
-        onParsed(result);
+        onParsed(result, file);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to parse CSV");
       }

@@ -7,6 +7,7 @@ import { ColumnMapper } from "./ColumnMapper";
 import { ImportPreview, ImportSuccess } from "./ImportPreview";
 import type { ParseResult } from "@/lib/csv/parser";
 import type { ImportRow } from "@/actions/import";
+import { saveAccountFile } from "@/actions/files";
 import type { Account } from "@/generated/prisma/client";
 
 type Step = "upload" | "map" | "preview" | "done";
@@ -27,6 +28,8 @@ export function ImportWizard({ accounts, redirectTo }: ImportWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("upload");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [imported, setImported] = useState(0);
   const [skipped, setSkipped] = useState(0);
@@ -56,8 +59,9 @@ export function ImportWizard({ accounts, redirectTo }: ImportWizardProps) {
 
       {step === "upload" && (
         <CsvUploader
-          onParsed={(result) => {
+          onParsed={(result, file) => {
             setParseResult(result);
+            setCsvFile(file);
             setStep("map");
           }}
         />
@@ -78,12 +82,31 @@ export function ImportWizard({ accounts, redirectTo }: ImportWizardProps) {
         <ImportPreview
           rows={importRows}
           onBack={() => setStep("map")}
-          onComplete={(imp, skip) => {
+          onComplete={async (imp, skip) => {
             setImported(imp);
             setSkipped(skip);
+            // The import has already committed; a failed hard copy shouldn't undo
+            // it, so report the problem on the success screen instead.
+            const accountId = importRows[0]?.accountId;
+            if (csvFile && accountId) {
+              const fd = new FormData();
+              fd.set("file", csvFile);
+              fd.set("accountId", accountId);
+              fd.set("kind", "IMPORT_CSV");
+              try {
+                const saved = await saveAccountFile(fd);
+                if (!saved.ok) setFileError(saved.error);
+              } catch (err) {
+                setFileError(err instanceof Error ? err.message : "Couldn't save a copy of the CSV");
+              }
+            }
             setStep("done");
           }}
         />
+      )}
+
+      {step === "done" && fileError && (
+        <p className="text-sm text-destructive">Imported, but the original CSV wasn&apos;t saved: {fileError}</p>
       )}
 
       {step === "done" && (

@@ -120,6 +120,10 @@ Checking and credit card accounts have an "Import Transactions" button on their 
 2. Lets you review and confirm the mapping before importing.
 3. Deduplicates by a SHA-256 hash of `accountId|date|description|amountCents` — re-importing the same file is safe.
 
+### Saved files
+
+Hard copies of what you download live under `files/` in the data folder (next to `finances.db`), organized as `files/accounts/<account>/statements/` and `imports/`, `files/tax/<year>/`, and `files/insurance/<policy>/`. Attach a statement (PDF, image, or CSV) when adding a balance snapshot, and the original CSV is kept automatically after a transaction import. Saving the same file twice is a no-op. Saved files show up on each account's page, where they can be downloaded or deleted; deleting an account keeps its files on disk. The tax CSV import isn't saved, since it's text produced by your AI tool rather than a download.
+
 ### Connections
 
 Links accounts to a bank or brokerage via [Plaid](https://plaid.com) instead of manual entry/CSV import. A **connection** is one Plaid login ("Item") at an institution — since one login can expose several accounts, and since two people can each have their own login at the same institution, a connection is a separate object from an `Account` and can map to multiple accounts.

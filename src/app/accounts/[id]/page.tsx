@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { Pencil, Upload, Plus, Info, ChevronDown } from "lucide-react";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { AddSnapshotButton } from "@/components/accounts/AddSnapshotButton";
+import { AccountFiles } from "@/components/accounts/AccountFiles";
 import { UnlinkAccountButton } from "@/components/plaid/UnlinkAccountButton";
 import { DeleteTaxRecordButton } from "@/components/tax/DeleteTaxRecordButton";
 import { cn } from "@/lib/utils";
@@ -371,6 +372,8 @@ export default async function AccountDetailPage({
           )}
         </div>
       )}
+
+      <AccountFiles accountId={id} />
 
       {isMortgage ? (
         <>

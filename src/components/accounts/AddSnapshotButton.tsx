@@ -14,6 +14,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { addAccountSnapshot } from "@/actions/accounts";
+import { saveAccountFile } from "@/actions/files";
+import { acceptAttr } from "@/lib/files/accept";
 import { parseDollarsToCents, centsToDisplay } from "@/lib/money";
 import { Camera } from "lucide-react";
 import type { Account } from "@/generated/prisma/client";
@@ -39,9 +41,29 @@ export function AddSnapshotButton({ account }: { account: Account }) {
     const balanceStr = fd.get("balance") as string;
     const asOfDate = fd.get("asOfDate") as string;
 
+    const statement = fd.get("statement");
+
     try {
       const balanceCents = parseDollarsToCents(balanceStr || "0");
       const { updatedCurrent } = await addAccountSnapshot({ accountId: account.id, balanceCents, asOfDate });
+
+      let fileProblem: string | null = null;
+      if (statement instanceof File && statement.size > 0) {
+        const upload = new FormData();
+        upload.set("file", statement);
+        upload.set("accountId", account.id);
+        upload.set("kind", "STATEMENT");
+        upload.set("asOfDate", asOfDate);
+        const saved = await saveAccountFile(upload);
+        if (!saved.ok) fileProblem = `The snapshot was saved, but the statement wasn't: ${saved.error}`;
+      }
+
+      if (fileProblem) {
+        setError(fileProblem);
+        setLoading(false);
+        router.refresh();
+        return;
+      }
       if (!updatedCurrent) {
         setError(
           "Saved to history, but this date is older than the account's current as-of date, so the displayed balance wasn't changed."
@@ -90,6 +112,14 @@ export function AddSnapshotButton({ account }: { account: Account }) {
                 <Label htmlFor="asOfDate">As of Date</Label>
                 <Input id="asOfDate" name="asOfDate" type="date" required defaultValue={today()} />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="statement">Statement (optional)</Label>
+              <Input id="statement" name="statement" type="file" accept={acceptAttr("STATEMENT")} />
+              <p className="text-xs text-muted-foreground">
+                Keeps a copy of the PDF, image, or CSV in your data folder.
+              </p>
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

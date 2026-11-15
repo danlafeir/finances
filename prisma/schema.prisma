@@ -73,6 +73,12 @@ enum PremiumFrequency {
   OTHER
 }
 
+enum StoredFileKind {
+  IMPORT_CSV
+  STATEMENT
+  TAX_FORM
+}
+
 enum HoldingSource {
   MANUAL
   PLAID
@@ -103,6 +109,7 @@ model Account {
   mortgageDetails     MortgageDetails?
   taxRecords          TaxRecord[]
   balanceSnapshots    AccountSnapshot[]
+  storedFiles         StoredFile[]
 }
 
 model PlaidConnection {
@@ -379,4 +386,26 @@ model InsuranceAnalysis {
   createdAt    DateTime           @default(now())
 
   @@index([policyId, createdAt])
+}
+
+// A hard copy of a file the user downloaded (statement, imported CSV, tax form),
+// kept on disk under the data folder's files/ dir. Rows are kept when their
+// account is deleted (accountId becomes null) so the copy isn't silently orphaned.
+model StoredFile {
+  id        String         @id @default(cuid())
+  kind      StoredFileKind
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+  sha256    String
+  relPath   String         @unique
+  // Balance date for a statement; null for imports and tax forms.
+  asOfDate  DateTime?
+  taxYear   Int?
+  accountId String?
+  account   Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdAt DateTime       @default(now())
+
+  @@index([accountId])
+  @@index([kind, taxYear])
 }
