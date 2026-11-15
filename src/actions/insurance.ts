@@ -6,6 +6,7 @@ import { InsurancePolicyInput } from "@/lib/schemas";
 import { InsuranceAnalysisInput } from "@/lib/insurance/schema";
 import { extractJsonObject, mapZodIssues, type FieldIssue } from "@/lib/insurance/analysis";
 import { isAcceptedFile } from "@/lib/insurance/documents";
+import { saveFile, deleteStoredFile } from "@/lib/files/storage";
 
 export async function createInsurancePolicy(data: InsurancePolicyInput) {
   const parsed = InsurancePolicyInput.parse(data);
@@ -38,7 +39,9 @@ export async function updateInsurancePolicy(id: string, data: InsurancePolicyInp
 }
 
 export async function deleteInsurancePolicy(id: string) {
+  const documents = await prisma.insuranceDocument.findMany({ where: { policyId: id }, select: { relPath: true } });
   await prisma.insurancePolicy.delete({ where: { id } });
+  await Promise.all(documents.flatMap((d) => (d.relPath ? [deleteStoredFile(d.relPath)] : [])));
   revalidatePath("/insurance");
 }
 
@@ -64,17 +67,29 @@ export async function uploadInsuranceDocument(policyId: string, formData: FormDa
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-
-  const document = await prisma.insuranceDocument.create({
-    data: {
-      policyId,
-      fileName: file.name,
-      mimeType: file.type || "application/octet-stream",
-      sizeBytes: buffer.length,
-      blob: { create: { data: buffer } },
-    },
-    select: { id: true, policyId: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true },
+  const policy = await prisma.insurancePolicy.findUniqueOrThrow({
+    where: { id: policyId },
+    select: { insurer: true, nickname: true },
   });
+
+  const relPath = await saveFile(`insurance/${policy.nickname ?? policy.insurer}`, file.name, buffer);
+
+  let document;
+  try {
+    document = await prisma.insuranceDocument.create({
+      data: {
+        policyId,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: buffer.length,
+        relPath,
+      },
+      select: { id: true, policyId: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true },
+    });
+  } catch (err) {
+    await deleteStoredFile(relPath);
+    throw err;
+  }
 
   revalidatePath(`/insurance/${policyId}`);
   return document;
@@ -91,9 +106,10 @@ export async function listInsuranceDocuments(policyId: string) {
 export async function deleteInsuranceDocument(id: string) {
   const existing = await prisma.insuranceDocument.findUniqueOrThrow({
     where: { id },
-    select: { policyId: true },
+    select: { policyId: true, relPath: true },
   });
   await prisma.insuranceDocument.delete({ where: { id } });
+  if (existing.relPath) await deleteStoredFile(existing.relPath);
   revalidatePath(`/insurance/${existing.policyId}`);
 }
 

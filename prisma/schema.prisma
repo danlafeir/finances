@@ -348,6 +348,9 @@ model InsuranceDocument {
   fileName  String
   mimeType  String
   sizeBytes Int
+  // Path under the data folder's files/ dir. Null only for documents uploaded
+  // before files moved out of the database; those are still served from `blob`.
+  relPath   String?
   createdAt DateTime @default(now())
 
   blob     InsuranceDocumentBlob?

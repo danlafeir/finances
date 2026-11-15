@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readStoredFile } from "@/lib/files/storage";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -8,7 +9,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     include: { blob: true },
   });
 
-  if (!doc?.blob) {
+  if (!doc) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const data = doc.relPath ? await readStoredFile(doc.relPath) : doc.blob?.data;
+  if (!data) {
     return new Response("Not found", { status: 404 });
   }
 
@@ -16,11 +22,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // macOS/Windows but would otherwise break out of the quoted-string filename param.
   const asciiFallback = doc.fileName.replace(/[^\x20-\x7e]|["\\]/g, "_");
 
-  return new Response(new Uint8Array(doc.blob.data), {
+  return new Response(new Uint8Array(data), {
     headers: {
       "Content-Type": doc.mimeType,
       "Content-Disposition": `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(doc.fileName)}`,
-      "Content-Length": String(doc.blob.data.length),
+      "Content-Length": String(data.length),
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, no-store",
     },

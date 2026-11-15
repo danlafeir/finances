@@ -30,7 +30,7 @@ ENCRYPTION_KEY=
 
 `DATABASE_URL` points at a local SQLite file via libSQL. `PRICE_TTL_MINUTES` controls how long stock/ETF price lookups are cached before re-fetching from Yahoo Finance (default 60 is fine).
 
-In the desktop app the database is `finances.db` inside the app's data folder, and you can relocate it from **Settings → Data location** (for example into a synced folder). Choosing a new folder copies the database there and restarts the app; the old copy is left in place as a backup, and a `finances.db` already in the new folder is used as-is rather than overwritten. The Settings screen no longer exposes the Plaid option; the Connections page only appears when Plaid credentials are already configured.
+In the desktop app the database is `finances.db` inside the app's data folder, next to a `files/` folder holding hard copies of uploaded documents (insurance policies today; statements and imports below), and you can relocate it from **Settings → Data location** (for example into a synced folder). Choosing a new folder copies the database and `files/` there and restarts the app; the old copy is left in place as a backup, and a `finances.db` already in the new folder is used as-is rather than overwritten. The Settings screen no longer exposes the Plaid option; the Connections page only appears when Plaid credentials are already configured.
 
 The Plaid and encryption values currently sit in `.env` as plaintext. To set this up:
 

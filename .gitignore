@@ -47,5 +47,8 @@ next-env.d.ts
 # local database
 dev.db
 
+# Hard copies of statements, imports, and documents live next to the db
+/files/
+
 # electron-builder output
 /release

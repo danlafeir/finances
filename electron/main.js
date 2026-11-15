@@ -6,6 +6,7 @@ const { spawn } = require("node:child_process");
 const settingsStore = require("./settingsStore");
 
 const DB_FILE = "finances.db";
+const FILES_DIR = "files";
 // SQLite sidecar files; copied with the db so an unflushed WAL isn't lost.
 const DB_SIDECARS = ["-wal", "-shm"];
 
@@ -93,8 +94,9 @@ function resolveDataDir(settings) {
   return settings.dataDir ?? defaultDataDir();
 }
 
-// Copies (never moves) the db into newDir so the old location stays as a
-// backup. An existing db at the destination wins and is never overwritten.
+// Copies (never moves) the db and its files/ folder into newDir so the old
+// location stays as a backup. An existing db at the destination wins and is
+// never overwritten or merged into.
 function copyDatabase(fromDir, toDir) {
   const from = path.join(fromDir, DB_FILE);
   const to = path.join(toDir, DB_FILE);
@@ -104,6 +106,8 @@ function copyDatabase(fromDir, toDir) {
   for (const suffix of DB_SIDECARS) {
     if (fs.existsSync(from + suffix)) fs.copyFileSync(from + suffix, to + suffix);
   }
+  const filesFrom = path.join(fromDir, FILES_DIR);
+  if (fs.existsSync(filesFrom)) fs.cpSync(filesFrom, path.join(toDir, FILES_DIR), { recursive: true });
 }
 
 async function createWindow() {
